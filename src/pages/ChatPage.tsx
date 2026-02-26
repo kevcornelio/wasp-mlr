@@ -9,10 +9,10 @@ type Msg = { role: 'user' | 'assistant'; content: string };
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
 const QUICK_PROMPTS = [
-  "Best place for Chicken Ghee Roast near Hampankatta?",
-  "Where can I get the best fish thali in Mangalore?",
-  "Suggest a good cafe in Balmatta area",
-  "Best ice cream parlor in Mangalore?",
+  "I'm craving something spicy, suggest something!",
+  "Date night dinner for two — where should we go?",
+  "Late night food options in Mangalore?",
+  "Family lunch on a Sunday — what's the vibe?",
 ];
 
 const ChatPage = () => {
@@ -119,8 +119,8 @@ const ChatPage = () => {
             </div>
             <div>
               <h2 className="text-xl font-semibold text-foreground">Wasp MLR</h2>
-              <p className="text-muted-foreground text-sm mt-1 max-w-md">
-                Your AI-powered restaurant advisor for Mangalore! Ask me about the best places to eat, specific dishes, or restaurants in any area.
+             <p className="text-muted-foreground text-sm mt-1 max-w-md">
+                Your AI-powered food guide for Mangalore! Tell me your mood, who you're with, or what you're craving — I'll find the perfect dish and place for you.
               </p>
             </div>
             <div className="flex flex-wrap gap-2 mt-4 max-w-lg justify-center">
