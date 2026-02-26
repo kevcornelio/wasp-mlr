@@ -44,7 +44,7 @@ export const AppSidebar = () => {
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
             <UtensilsCrossed className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="text-lg font-semibold text-sidebar-fg">Mangalore Foodie</span>
+          <span className="text-lg font-semibold text-sidebar-fg">Wasp MLR</span>
         </div>
 
         {/* Navigation */}

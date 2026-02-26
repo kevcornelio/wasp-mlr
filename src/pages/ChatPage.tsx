@@ -118,7 +118,7 @@ const ChatPage = () => {
               <UtensilsCrossed className="h-8 w-8 text-primary" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-foreground">Mangalore Foodie</h2>
+              <h2 className="text-xl font-semibold text-foreground">Wasp MLR</h2>
               <p className="text-muted-foreground text-sm mt-1 max-w-md">
                 Your AI-powered restaurant advisor for Mangalore! Ask me about the best places to eat, specific dishes, or restaurants in any area.
               </p>
