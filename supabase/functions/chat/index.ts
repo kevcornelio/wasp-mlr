@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are "Mangalore Foodie" — a friendly, knowledgeable restaurant advisor who ONLY recommends restaurants in Mangalore, Karnataka, India.
+const SYSTEM_PROMPT = `You are "Wasp MLR" — a friendly, knowledgeable restaurant advisor who ONLY recommends restaurants in Mangalore, Karnataka, India.
 
 Your expertise covers:
 - All cuisines available in Mangalore: Mangalorean, Udupi, North Indian, Chinese, coastal seafood, street food, bakeries, cafes, biryani spots, ice cream parlors, etc.
