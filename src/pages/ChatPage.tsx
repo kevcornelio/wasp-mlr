@@ -12,7 +12,7 @@ const QUICK_PROMPTS = [
   "I'm craving something spicy, suggest something!",
   "Date night dinner for two — where should we go?",
   "Late night food options in Mangalore?",
-  "Family lunch on a Sunday — what's the vibe?",
+  "What's the vibe for a Sunday family lunch?",
 ];
 
 const ChatPage = () => {
@@ -178,7 +178,7 @@ const ChatPage = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about restaurants in Mangalore..."
+            placeholder="What's the vibe? Tell me your mood, craving, or occasion..."
             className="min-h-[44px] max-h-32 resize-none rounded-xl"
             rows={1}
           />
