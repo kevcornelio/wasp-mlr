@@ -6,10 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppProvider, useApp } from "@/context/AppContext";
 import { AppLayout } from "@/components/AppLayout";
 import AuthPage from "@/pages/AuthPage";
-import DashboardPage from "@/pages/DashboardPage";
-import TasksPage from "@/pages/TasksPage";
-import ProjectsPage from "@/pages/ProjectsPage";
-import TeamPage from "@/pages/TeamPage";
+import ChatPage from "@/pages/ChatPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,7 +19,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const AuthGuard = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useApp();
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  if (isAuthenticated) return <Navigate to="/chat" replace />;
   return <>{children}</>;
 };
 
@@ -30,11 +27,8 @@ const AppRoutes = () => (
   <Routes>
     <Route path="/auth" element={<AuthGuard><AuthPage /></AuthGuard>} />
     <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-      <Route index element={<Navigate to="/dashboard" replace />} />
-      <Route path="dashboard" element={<DashboardPage />} />
-      <Route path="tasks" element={<TasksPage />} />
-      <Route path="projects" element={<ProjectsPage />} />
-      <Route path="team" element={<TeamPage />} />
+      <Route index element={<Navigate to="/chat" replace />} />
+      <Route path="chat" element={<ChatPage />} />
     </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>

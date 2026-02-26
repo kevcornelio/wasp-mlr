@@ -1,14 +1,11 @@
 import { useApp } from '@/context/AppContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, CheckSquare, FolderKanban, Users, LogOut, Menu, X } from 'lucide-react';
+import { UtensilsCrossed, LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { label: 'Tasks', path: '/tasks', icon: CheckSquare },
-  { label: 'Projects', path: '/projects', icon: FolderKanban },
-  { label: 'Team', path: '/team', icon: Users },
+  { label: 'Chat', path: '/chat', icon: UtensilsCrossed },
 ];
 
 export const AppSidebar = () => {
@@ -45,9 +42,9 @@ export const AppSidebar = () => {
         {/* Logo */}
         <div className="flex items-center gap-3 px-6 py-5 border-b border-sidebar-border">
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <CheckSquare className="h-4 w-4 text-primary-foreground" />
+            <UtensilsCrossed className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="text-lg font-semibold text-sidebar-fg">TaskFlow</span>
+          <span className="text-lg font-semibold text-sidebar-fg">Mangalore Foodie</span>
         </div>
 
         {/* Navigation */}
