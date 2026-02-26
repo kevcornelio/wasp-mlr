@@ -266,7 +266,7 @@ const ChatPage = () => {
             </div>
             <div>
               <h2 className="text-xl font-semibold text-foreground">
-                {user && firstName ? `Hey ${firstName}, what's the vibe?` : "What's the vibe?"}
+                {user && firstName ? `Hey ${firstName}, Wasp!` : "What's the vibe?"}
               </h2>
               <p className="text-muted-foreground text-sm mt-1 max-w-md">
                 Your AI-powered food guide for Mangalore! Tell me your mood, who you're with, or what you're craving — I'll find the perfect dish and place for you.
