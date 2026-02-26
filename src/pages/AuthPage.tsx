@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '@/context/AppContext';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { UtensilsCrossed } from 'lucide-react';
+import { UtensilsCrossed, ArrowLeft } from 'lucide-react';
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -12,29 +12,41 @@ const AuthPage = () => {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
-  const { login, signup } = useApp();
+  const [loading, setLoading] = useState(false);
+  const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (isLogin) {
-      if (login(email, password)) {
-        navigate('/chat');
+    setLoading(true);
+    try {
+      if (isLogin) {
+        const { error } = await signIn(email, password);
+        if (error) { setError(error); return; }
       } else {
-        setError('Invalid credentials');
+        if (!fullName.trim()) { setError('Full name is required'); return; }
+        const { error } = await signUp(email, password, fullName);
+        if (error) { setError(error); return; }
       }
-    } else {
-      if (!fullName.trim()) { setError('Full name is required'); return; }
-      if (signup(fullName, email, password)) {
-        navigate('/chat');
-      }
+      navigate('/chat');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md fade-in">
+        {/* Back to chat */}
+        <button
+          onClick={() => navigate('/chat')}
+          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to chat
+        </button>
+
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
           <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
@@ -48,7 +60,7 @@ const AuthPage = () => {
             {isLogin ? 'Welcome back' : 'Create your account'}
           </h2>
           <p className="text-sm text-muted-foreground mb-6">
-            {isLogin ? 'Sign in to your account to continue' : 'Get started with Wasp MLR'}
+            {isLogin ? 'Sign in to access your chat history' : 'Get started with Wasp MLR'}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -60,14 +72,16 @@ const AuthPage = () => {
             )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" required />
+              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required />
+              <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required minLength={6} />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full">{isLogin ? 'Sign In' : 'Sign Up'}</Button>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Sign Up'}
+            </Button>
           </form>
 
           <p className="text-sm text-center text-muted-foreground mt-6">
@@ -77,10 +91,6 @@ const AuthPage = () => {
             </button>
           </p>
         </div>
-
-        <p className="text-xs text-muted-foreground text-center mt-4">
-          Try with any email (e.g. alex@company.com) and any password
-        </p>
       </div>
     </div>
   );
