@@ -4,7 +4,7 @@ import { useApp } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CheckSquare } from 'lucide-react';
+import { UtensilsCrossed } from 'lucide-react';
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -20,14 +20,14 @@ const AuthPage = () => {
     setError('');
     if (isLogin) {
       if (login(email, password)) {
-        navigate('/dashboard');
+        navigate('/chat');
       } else {
         setError('Invalid credentials');
       }
     } else {
       if (!fullName.trim()) { setError('Full name is required'); return; }
       if (signup(fullName, email, password)) {
-        navigate('/dashboard');
+        navigate('/chat');
       }
     }
   };
@@ -38,9 +38,9 @@ const AuthPage = () => {
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
           <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
-            <CheckSquare className="h-5 w-5 text-primary-foreground" />
+            <UtensilsCrossed className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="text-2xl font-bold text-foreground">TaskFlow</span>
+          <span className="text-2xl font-bold text-foreground">Wasp MLR</span>
         </div>
 
         <div className="bg-card rounded-xl border border-border p-8 shadow-sm">
@@ -48,7 +48,7 @@ const AuthPage = () => {
             {isLogin ? 'Welcome back' : 'Create your account'}
           </h2>
           <p className="text-sm text-muted-foreground mb-6">
-            {isLogin ? 'Sign in to your account to continue' : 'Get started with TaskFlow'}
+            {isLogin ? 'Sign in to your account to continue' : 'Get started with Wasp MLR'}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
