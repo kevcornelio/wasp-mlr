@@ -12,7 +12,7 @@ const QUICK_PROMPTS = [
   "I'm craving something spicy, suggest something!",
   "Date night dinner for two — where should we go?",
   "Late night food options in Mangalore?",
-  "Family lunch on a Sunday — what's the vibe?",
+  "What's the vibe for a Sunday family lunch?",
 ];
 
 const ChatPage = () => {
