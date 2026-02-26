@@ -119,8 +119,8 @@ const ChatPage = () => {
             </div>
             <div>
               <h2 className="text-xl font-semibold text-foreground">Wasp MLR</h2>
-              <p className="text-muted-foreground text-sm mt-1 max-w-md">
-                Your AI-powered restaurant advisor for Mangalore! Ask me about the best places to eat, specific dishes, or restaurants in any area.
+             <p className="text-muted-foreground text-sm mt-1 max-w-md">
+                Your AI-powered food guide for Mangalore! Tell me your mood, who you're with, or what you're craving — I'll find the perfect dish and place for you.
               </p>
             </div>
             <div className="flex flex-wrap gap-2 mt-4 max-w-lg justify-center">
