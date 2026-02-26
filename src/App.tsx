@@ -2,24 +2,54 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AppProvider, useApp } from "@/context/AppContext";
+import { AppLayout } from "@/components/AppLayout";
+import AuthPage from "@/pages/AuthPage";
+import DashboardPage from "@/pages/DashboardPage";
+import TasksPage from "@/pages/TasksPage";
+import ProjectsPage from "@/pages/ProjectsPage";
+import TeamPage from "@/pages/TeamPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useApp();
+  if (!isAuthenticated) return <Navigate to="/auth" replace />;
+  return <>{children}</>;
+};
+
+const AuthGuard = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useApp();
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+};
+
+const AppRoutes = () => (
+  <Routes>
+    <Route path="/auth" element={<AuthGuard><AuthPage /></AuthGuard>} />
+    <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+      <Route index element={<Navigate to="/dashboard" replace />} />
+      <Route path="dashboard" element={<DashboardPage />} />
+      <Route path="tasks" element={<TasksPage />} />
+      <Route path="projects" element={<ProjectsPage />} />
+      <Route path="team" element={<TeamPage />} />
+    </Route>
+    <Route path="*" element={<NotFound />} />
+  </Routes>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AppProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </AppProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
