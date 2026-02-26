@@ -112,7 +112,9 @@ const ChatPage = () => {
     <div className="flex flex-col h-screen max-w-3xl mx-auto">
       {/* Info banner */}
       <div className="text-center text-xs text-muted-foreground py-2 border-b border-border bg-muted/30">
-        No login needed — just start chatting! Sign in if you'd like to save your chat history.
+        No login needed — just start chatting!{' '}
+        <a href="/auth" className="text-primary font-medium hover:underline">Sign in</a>{' '}
+        if you'd like to save your chat history.
       </div>
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
