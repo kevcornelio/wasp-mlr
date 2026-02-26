@@ -178,7 +178,7 @@ const ChatPage = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about restaurants in Mangalore..."
+            placeholder="What's the vibe? Tell me your mood, craving, or occasion..."
             className="min-h-[44px] max-h-32 resize-none rounded-xl"
             rows={1}
           />
