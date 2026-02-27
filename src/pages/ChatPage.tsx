@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Send, UtensilsCrossed, MapPin, Loader2, History, Plus, LogOut, Trash2 } from 'lucide-react';
+import { Send, UtensilsCrossed, MapPin, Loader2, History, Plus, LogOut, Trash2, Settings, Utensils } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
@@ -8,6 +8,7 @@ import { getAnonSupabaseClient } from '@/lib/anonSupabase';
 import { getDeviceId } from '@/lib/deviceId';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
+import ChatFeedback from '@/components/ChatFeedback';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
