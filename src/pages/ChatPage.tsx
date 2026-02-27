@@ -367,6 +367,11 @@ const ChatPage = () => {
             </div>
           </div>
         )}
+        {showFeedback && extractedPlaces.length > 0 && !isLoading && (
+          <div className="mt-2">
+            <ChatFeedback places={extractedPlaces} onSubmit={handleFeedbackSubmit} />
+          </div>
+        )}
       </div>
 
       {/* Input */}
