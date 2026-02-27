@@ -1,9 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Send, UtensilsCrossed, MapPin, Loader2, History, Plus, LogOut, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { getAnonSupabaseClient } from '@/lib/anonSupabase';
+import { getDeviceId } from '@/lib/deviceId';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 
@@ -29,25 +31,27 @@ const ChatPage = () => {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Use authenticated client for logged-in users, anon client otherwise
+  const db = useMemo(() => (user ? supabase : getAnonSupabaseClient()), [user]);
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages]);
 
-  // Load sessions list for logged-in users
+  // Load sessions list
   useEffect(() => {
-    if (!user) return;
     const loadSessions = async () => {
-      const { data } = await supabase
+      const { data } = await db
         .from('chat_sessions')
         .select('id, title, created_at')
         .order('updated_at', { ascending: false });
       if (data) setSessions(data);
     };
     loadSessions();
-  }, [user]);
+  }, [db]);
 
   const loadSession = async (sessionId: string) => {
-    const { data } = await supabase
+    const { data } = await db
       .from('chat_messages')
       .select('role, content')
       .eq('session_id', sessionId)
@@ -60,7 +64,7 @@ const ChatPage = () => {
   };
 
   const deleteSession = async (sessionId: string) => {
-    await supabase.from('chat_sessions').delete().eq('id', sessionId);
+    await db.from('chat_sessions').delete().eq('id', sessionId);
     setSessions(prev => prev.filter(s => s.id !== sessionId));
     if (activeSessionId === sessionId) {
       setMessages([]);
@@ -75,15 +79,23 @@ const ChatPage = () => {
   };
 
   const saveMessage = async (sessionId: string, role: string, content: string) => {
-    await supabase.from('chat_messages').insert({ session_id: sessionId, role, content });
+    await db.from('chat_messages').insert({ session_id: sessionId, role, content });
   };
 
   const createOrGetSession = async (firstMessage: string): Promise<string> => {
     if (activeSessionId) return activeSessionId;
     const title = firstMessage.slice(0, 50) + (firstMessage.length > 50 ? '...' : '');
-    const { data } = await supabase
+
+    const insertData: Record<string, unknown> = { title };
+    if (user) {
+      insertData.user_id = user.id;
+    } else {
+      insertData.device_id = getDeviceId();
+    }
+
+    const { data } = await db
       .from('chat_sessions')
-      .insert({ user_id: user!.id, title })
+      .insert(insertData as any)
       .select('id')
       .single();
     const id = data!.id;
@@ -160,20 +172,14 @@ const ChatPage = () => {
     setInput('');
     setIsLoading(true);
     try {
-      // Save user message if logged in
-      let sessionId: string | null = null;
-      if (user) {
-        sessionId = await createOrGetSession(text.trim());
-        await saveMessage(sessionId, 'user', text.trim());
-      }
+      const sessionId = await createOrGetSession(text.trim());
+      await saveMessage(sessionId, 'user', text.trim());
 
       const assistantContent = await streamChat(newMessages);
 
-      // Save assistant message if logged in
-      if (user && sessionId && assistantContent) {
+      if (sessionId && assistantContent) {
         await saveMessage(sessionId, 'assistant', assistantContent);
-        // Update session timestamp
-        await supabase.from('chat_sessions').update({ updated_at: new Date().toISOString() }).eq('id', sessionId);
+        await db.from('chat_sessions').update({ updated_at: new Date().toISOString() }).eq('id', sessionId);
       }
     } catch (e) {
       console.error(e);
@@ -201,31 +207,29 @@ const ChatPage = () => {
             <span className="text-foreground font-medium">Hi, {firstName}! 👋</span>
           ) : (
             <>
-              No login needed — just start chatting!{' '}
+              Chat history saves on this device.{' '}
               <a href="/auth" className="text-primary font-medium hover:underline">Sign in</a>{' '}
-              to save your chat history.
+              to sync across devices.
             </>
           )}
         </div>
         <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" onClick={startNewChat} className="h-7 text-xs gap-1">
+            <Plus className="h-3 w-3" /> New
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setShowHistory(!showHistory)} className="h-7 text-xs gap-1">
+            <History className="h-3 w-3" /> History
+          </Button>
           {user && (
-            <>
-              <Button variant="ghost" size="sm" onClick={startNewChat} className="h-7 text-xs gap-1">
-                <Plus className="h-3 w-3" /> New
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => setShowHistory(!showHistory)} className="h-7 text-xs gap-1">
-                <History className="h-3 w-3" /> History
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => { signOut(); }} className="h-7 text-xs gap-1 text-muted-foreground">
-                <LogOut className="h-3 w-3" /> Sign out
-              </Button>
-            </>
+            <Button variant="ghost" size="sm" onClick={() => { signOut(); }} className="h-7 text-xs gap-1 text-muted-foreground">
+              <LogOut className="h-3 w-3" /> Sign out
+            </Button>
           )}
         </div>
       </div>
 
       {/* History panel */}
-      {showHistory && user && (
+      {showHistory && (
         <div className="border-b border-border bg-card px-4 py-3 max-h-60 overflow-y-auto">
           <h3 className="text-sm font-medium text-foreground mb-2">Past conversations</h3>
           {sessions.length === 0 ? (
