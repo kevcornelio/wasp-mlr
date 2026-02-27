@@ -30,6 +30,8 @@ const ChatPage = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [sessions, setSessions] = useState<{ id: string; title: string; created_at: string }[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [extractedPlaces, setExtractedPlaces] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Use authenticated client for logged-in users, anon client otherwise
