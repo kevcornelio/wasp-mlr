@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Send, UtensilsCrossed, MapPin, Loader2, History, Plus, LogOut, Trash2 } from 'lucide-react';
+import { Send, UtensilsCrossed, MapPin, Loader2, History, Plus, LogOut, Trash2, Settings, Utensils } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
@@ -8,6 +8,7 @@ import { getAnonSupabaseClient } from '@/lib/anonSupabase';
 import { getDeviceId } from '@/lib/deviceId';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
+import ChatFeedback from '@/components/ChatFeedback';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
@@ -29,6 +30,8 @@ const ChatPage = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [sessions, setSessions] = useState<{ id: string; title: string; created_at: string }[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [extractedPlaces, setExtractedPlaces] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Use authenticated client for logged-in users, anon client otherwise
@@ -180,6 +183,13 @@ const ChatPage = () => {
       if (sessionId && assistantContent) {
         await saveMessage(sessionId, 'assistant', assistantContent);
         await db.from('chat_sessions').update({ updated_at: new Date().toISOString() }).eq('id', sessionId);
+        
+        // Extract place names from response for feedback
+        const places = extractPlaces(assistantContent);
+        if (places.length > 0) {
+          setExtractedPlaces(places);
+          setShowFeedback(true);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -194,6 +204,40 @@ const ChatPage = () => {
       e.preventDefault();
       send(input);
     }
+  };
+
+  // Simple extraction of restaurant/place names from AI response
+  const extractPlaces = (text: string): string[] => {
+    const lines = text.split('\n');
+    const places: string[] = [];
+    for (const line of lines) {
+      // Match bold text patterns like **Restaurant Name**
+      const matches = line.match(/\*\*([^*]+)\*\*/g);
+      if (matches) {
+        for (const m of matches) {
+          const name = m.replace(/\*\*/g, '').trim();
+          // Filter out generic words, keep likely restaurant names
+          if (name.length > 2 && name.length < 60 && !['Pro Tip', 'Note', 'Tip', 'Warning', 'Options', 'Summary'].includes(name)) {
+            places.push(name);
+          }
+        }
+      }
+    }
+    return [...new Set(places)].slice(0, 8);
+  };
+
+  const handleFeedbackSubmit = async (items: { place: string; visited: boolean; rating: number; comment: string }[]) => {
+    if (!activeSessionId) return;
+    const payload = items.map(item => ({
+      session_id: activeSessionId,
+      place_name: item.place,
+      visited: true,
+      rating: item.rating || null,
+      comment: item.comment || null,
+      ...(user ? { user_id: user.id } : { device_id: getDeviceId() }),
+    }));
+    await db.from('chat_feedback').insert(payload as any);
+    setShowFeedback(false);
   };
 
   const firstName = profile?.full_name?.split(' ')[0] || '';
@@ -219,6 +263,12 @@ const ChatPage = () => {
           </Button>
           <Button variant="ghost" size="sm" onClick={() => setShowHistory(!showHistory)} className="h-7 text-xs gap-1">
             <History className="h-3 w-3" /> History
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/preferences')} className="h-7 text-xs gap-1">
+            <Settings className="h-3 w-3" />
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/spots')} className="h-7 text-xs gap-1">
+            <Utensils className="h-3 w-3" />
           </Button>
           {user && (
             <Button variant="ghost" size="sm" onClick={() => { signOut(); }} className="h-7 text-xs gap-1 text-muted-foreground">
@@ -315,6 +365,11 @@ const ChatPage = () => {
             <div className="bg-card border border-border rounded-2xl rounded-bl-md px-4 py-3">
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             </div>
+          </div>
+        )}
+        {showFeedback && extractedPlaces.length > 0 && !isLoading && (
+          <div className="mt-2">
+            <ChatFeedback places={extractedPlaces} onSubmit={handleFeedbackSubmit} />
           </div>
         )}
       </div>

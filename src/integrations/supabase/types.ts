@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      chat_feedback: {
+        Row: {
+          comment: string | null
+          created_at: string
+          device_id: string | null
+          id: string
+          place_name: string
+          rating: number | null
+          session_id: string
+          user_id: string | null
+          visited: boolean
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          place_name: string
+          rating?: number | null
+          session_id: string
+          user_id?: string | null
+          visited?: boolean
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          place_name?: string
+          rating?: number | null
+          session_id?: string
+          user_id?: string | null
+          visited?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_feedback_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_messages: {
         Row: {
           content: string
@@ -91,6 +135,81 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
+        }
+        Relationships: []
+      }
+      user_food_spots: {
+        Row: {
+          created_at: string
+          device_id: string | null
+          dishes: string[] | null
+          id: string
+          location: string | null
+          notes: string | null
+          rating: number | null
+          restaurant_name: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          device_id?: string | null
+          dishes?: string[] | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          rating?: number | null
+          restaurant_name: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          device_id?: string | null
+          dishes?: string[] | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          rating?: number | null
+          restaurant_name?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_preferences: {
+        Row: {
+          allergies: string[] | null
+          budget_range: string | null
+          created_at: string
+          device_id: string | null
+          diet_type: string | null
+          favorite_cuisines: string[] | null
+          id: string
+          spice_level: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          allergies?: string[] | null
+          budget_range?: string | null
+          created_at?: string
+          device_id?: string | null
+          diet_type?: string | null
+          favorite_cuisines?: string[] | null
+          id?: string
+          spice_level?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          allergies?: string[] | null
+          budget_range?: string | null
+          created_at?: string
+          device_id?: string | null
+          diet_type?: string | null
+          favorite_cuisines?: string[] | null
+          id?: string
+          spice_level?: string | null
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
