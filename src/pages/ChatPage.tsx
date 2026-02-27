@@ -206,41 +206,19 @@ const ChatPage = () => {
     }
   };
 
-  // Extract restaurant/place names from AI response, filtering out dish names
+  // Extract restaurant names from the structured [PLACES: ...] tag the AI appends
   const extractPlaces = (text: string): string[] => {
-    const places: string[] = [];
-
-    // Common dish keywords to filter out
-    const dishKeywords = /\b(dosa|rotti|roti|neer dosa|ghee roast|fry|curry|biryani|rice|masala|gassi|sukka|pulav|bun|idli|vada|upma|bajji|bonda|golibaje|patrode|kadubu|pundi|pulimunchi|meal|thali|chicken|mutton|fish|prawn|crab|bangude|anjal|kane|surmai|pomfret|paneer|gobi|dal|sambar|chutney|pickle|payasam|ice cream|juice|milkshake|sundae|cake|brownie|pizza|burger|noodle|manchurian|fried rice|soup|momos|kebab|tikka|tandoori|korma|rolls?|wrap|sandwich|salad|dessert|sweet|halwa|laddu|jalebi|gulab jamun|kulfi)\b/i;
-    const genericWords = /^(Pro Tip|Note|Tip|Warning|Options|Summary|Bonus|Location|Price|Vibe|Mood|Must.Try|Dish|Food|Menu|Cuisine|Ambiance|Rating|Cost|Address|Timings?|Hours?|Open|Closed|Why|What|How|Best|Top|Great|Perfect|Try|Order|Recommendations?|Suggestions?)$/i;
-
-    // Match patterns like **Name** — or **Name** (commonly used for restaurants)
-    const lines = text.split('\n');
-    for (const line of lines) {
-      // Look for bold text that appears near location/restaurant context
-      const matches = line.match(/\*\*([^*]+)\*\*/g);
-      if (matches) {
-        for (const m of matches) {
-          const name = m.replace(/\*\*/g, '').trim();
-          const lineContext = line.toLowerCase();
-          const isLikelyPlace =
-            /\b(hotel|restaurant|cafe|bakery|bar|lounge|kitchen|parlour|parlor|at|near|visit|go to|head to|check out|located|branch)\b/i.test(lineContext) ||
-            /📍|🍽️|🏠|→|–|—/.test(line);
-
-          if (
-            name.length > 3 &&
-            name.length < 50 &&
-            !dishKeywords.test(name) &&
-            !genericWords.test(name) &&
-            isLikelyPlace
-          ) {
-            places.push(name);
-          }
-        }
-      }
-    }
-    return [...new Set(places)].slice(0, 6);
+    const match = text.match(/\[PLACES:\s*(.+?)\]/i);
+    if (!match) return [];
+    return match[1]
+      .split(',')
+      .map(p => p.trim())
+      .filter(p => p.length > 2)
+      .slice(0, 6);
   };
+
+  // Strip the [PLACES: ...] tag from displayed messages
+  const cleanMessage = (content: string) => content.replace(/\[PLACES:\s*.+?\]/gi, '').trim();
 
   const handleFeedbackSubmit = async (items: { place: string; visited: boolean; rating: number; comment: string }[]) => {
     if (!activeSessionId) return;
