@@ -206,24 +206,40 @@ const ChatPage = () => {
     }
   };
 
-  // Simple extraction of restaurant/place names from AI response
+  // Extract restaurant/place names from AI response, filtering out dish names
   const extractPlaces = (text: string): string[] => {
-    const lines = text.split('\n');
     const places: string[] = [];
+
+    // Common dish keywords to filter out
+    const dishKeywords = /\b(dosa|rotti|roti|neer dosa|ghee roast|fry|curry|biryani|rice|masala|gassi|sukka|pulav|bun|idli|vada|upma|bajji|bonda|golibaje|patrode|kadubu|pundi|pulimunchi|meal|thali|chicken|mutton|fish|prawn|crab|bangude|anjal|kane|surmai|pomfret|paneer|gobi|dal|sambar|chutney|pickle|payasam|ice cream|juice|milkshake|sundae|cake|brownie|pizza|burger|noodle|manchurian|fried rice|soup|momos|kebab|tikka|tandoori|korma|rolls?|wrap|sandwich|salad|dessert|sweet|halwa|laddu|jalebi|gulab jamun|kulfi)\b/i;
+    const genericWords = /^(Pro Tip|Note|Tip|Warning|Options|Summary|Bonus|Location|Price|Vibe|Mood|Must.Try|Dish|Food|Menu|Cuisine|Ambiance|Rating|Cost|Address|Timings?|Hours?|Open|Closed|Why|What|How|Best|Top|Great|Perfect|Try|Order|Recommendations?|Suggestions?)$/i;
+
+    // Match patterns like **Name** — or **Name** (commonly used for restaurants)
+    const lines = text.split('\n');
     for (const line of lines) {
-      // Match bold text patterns like **Restaurant Name**
+      // Look for bold text that appears near location/restaurant context
       const matches = line.match(/\*\*([^*]+)\*\*/g);
       if (matches) {
         for (const m of matches) {
           const name = m.replace(/\*\*/g, '').trim();
-          // Filter out generic words, keep likely restaurant names
-          if (name.length > 2 && name.length < 60 && !['Pro Tip', 'Note', 'Tip', 'Warning', 'Options', 'Summary'].includes(name)) {
+          const lineContext = line.toLowerCase();
+          const isLikelyPlace =
+            /\b(hotel|restaurant|cafe|bakery|bar|lounge|kitchen|parlour|parlor|at|near|visit|go to|head to|check out|located|branch)\b/i.test(lineContext) ||
+            /📍|🍽️|🏠|→|–|—/.test(line);
+
+          if (
+            name.length > 3 &&
+            name.length < 50 &&
+            !dishKeywords.test(name) &&
+            !genericWords.test(name) &&
+            isLikelyPlace
+          ) {
             places.push(name);
           }
         }
       }
     }
-    return [...new Set(places)].slice(0, 8);
+    return [...new Set(places)].slice(0, 6);
   };
 
   const handleFeedbackSubmit = async (items: { place: string; visited: boolean; rating: number; comment: string }[]) => {
