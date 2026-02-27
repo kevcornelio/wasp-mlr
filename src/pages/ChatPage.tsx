@@ -183,6 +183,13 @@ const ChatPage = () => {
       if (sessionId && assistantContent) {
         await saveMessage(sessionId, 'assistant', assistantContent);
         await db.from('chat_sessions').update({ updated_at: new Date().toISOString() }).eq('id', sessionId);
+        
+        // Extract place names from response for feedback
+        const places = extractPlaces(assistantContent);
+        if (places.length > 0) {
+          setExtractedPlaces(places);
+          setShowFeedback(true);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -197,6 +204,40 @@ const ChatPage = () => {
       e.preventDefault();
       send(input);
     }
+  };
+
+  // Simple extraction of restaurant/place names from AI response
+  const extractPlaces = (text: string): string[] => {
+    const lines = text.split('\n');
+    const places: string[] = [];
+    for (const line of lines) {
+      // Match bold text patterns like **Restaurant Name**
+      const matches = line.match(/\*\*([^*]+)\*\*/g);
+      if (matches) {
+        for (const m of matches) {
+          const name = m.replace(/\*\*/g, '').trim();
+          // Filter out generic words, keep likely restaurant names
+          if (name.length > 2 && name.length < 60 && !['Pro Tip', 'Note', 'Tip', 'Warning', 'Options', 'Summary'].includes(name)) {
+            places.push(name);
+          }
+        }
+      }
+    }
+    return [...new Set(places)].slice(0, 8);
+  };
+
+  const handleFeedbackSubmit = async (items: { place: string; visited: boolean; rating: number; comment: string }[]) => {
+    if (!activeSessionId) return;
+    const payload = items.map(item => ({
+      session_id: activeSessionId,
+      place_name: item.place,
+      visited: true,
+      rating: item.rating || null,
+      comment: item.comment || null,
+      ...(user ? { user_id: user.id } : { device_id: getDeviceId() }),
+    }));
+    await db.from('chat_feedback').insert(payload as any);
+    setShowFeedback(false);
   };
 
   const firstName = profile?.full_name?.split(' ')[0] || '';
