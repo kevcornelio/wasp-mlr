@@ -222,17 +222,6 @@ const ChatPage = () => {
       if (matches) {
         for (const m of matches) {
           const name = m.replace(/\*\*/g, '').trim();
-          if (
-            name.length > 3 &&
-            name.length < 50 &&
-            !dishKeywords.test(name) &&
-            !genericWords.test(name) &&
-            // Restaurant names usually have uppercase words or contain keywords like Hotel, Restaurant, Cafe
-            (/\b(hotel|restaurant|cafe|bakery|bar|lounge|kitchen|house|home|parlour|parlor|corner|joint|junction|point|dhaba|mess|bhavan|bhawan|canteen|stall)\b/i.test(name) ||
-             // Or are proper nouns (capitalized words, no common food verbs)
-             (/^[A-Z]/.test(name) && !/\b(roast|fry|fried|baked|grilled|steamed|boiled|sauteed|tossed|served|topped)\b/i.test(name)))
-          );
-          // Only add if it looks like a place (contains location hint or restaurant keyword, or appears near location markers)
           const lineContext = line.toLowerCase();
           const isLikelyPlace =
             /\b(hotel|restaurant|cafe|bakery|bar|lounge|kitchen|parlour|parlor|at|near|visit|go to|head to|check out|located|branch)\b/i.test(lineContext) ||
