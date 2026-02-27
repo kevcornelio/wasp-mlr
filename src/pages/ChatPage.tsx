@@ -345,7 +345,7 @@ const ChatPage = () => {
               >
                 {msg.role === 'assistant' ? (
                   <div className="prose prose-sm dark:prose-invert max-w-none [&_ul]:mt-1 [&_li]:mt-0.5 [&_p]:mt-1 [&_p:first-child]:mt-0">
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    <ReactMarkdown>{cleanMessage(msg.content)}</ReactMarkdown>
                   </div>
                 ) : (
                   msg.content
