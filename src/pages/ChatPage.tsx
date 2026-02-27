@@ -264,6 +264,12 @@ const ChatPage = () => {
           <Button variant="ghost" size="sm" onClick={() => setShowHistory(!showHistory)} className="h-7 text-xs gap-1">
             <History className="h-3 w-3" /> History
           </Button>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/preferences')} className="h-7 text-xs gap-1">
+            <Settings className="h-3 w-3" />
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/spots')} className="h-7 text-xs gap-1">
+            <Utensils className="h-3 w-3" />
+          </Button>
           {user && (
             <Button variant="ghost" size="sm" onClick={() => { signOut(); }} className="h-7 text-xs gap-1 text-muted-foreground">
               <LogOut className="h-3 w-3" /> Sign out
