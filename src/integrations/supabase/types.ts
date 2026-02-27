@@ -49,24 +49,27 @@ export type Database = {
       chat_sessions: {
         Row: {
           created_at: string
+          device_id: string | null
           id: string
           title: string
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
+          device_id?: string | null
           id?: string
           title?: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
+          device_id?: string | null
           id?: string
           title?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
