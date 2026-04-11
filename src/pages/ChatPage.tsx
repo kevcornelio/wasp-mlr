@@ -152,11 +152,13 @@ const ChatPage = () => {
         if (line.startsWith(':') || line.trim() === '') continue;
         if (!line.startsWith('data: ')) continue;
         const jsonStr = line.slice(6).trim();
-        if (jsonStr === '[DONE]') { streamDone = true; break; }
         try {
           const parsed = JSON.parse(jsonStr);
-          const content = parsed.choices?.[0]?.delta?.content;
-          if (content) updateAssistant(assistantSoFar + content);
+          if (parsed.type === 'message_stop') { streamDone = true; break; }
+          if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
+            const content = parsed.delta.text;
+            if (content) updateAssistant(assistantSoFar + content);
+          }
         } catch {
           textBuffer = line + '\n' + textBuffer;
           break;
