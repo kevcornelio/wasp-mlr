@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "Vite Dev Server",
-      "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeExecutable": "/Users/user/kanban-kindness-desk/node_modules/.bin/vite",
+      "runtimeArgs": ["--port", "8080"],
       "port": 8080
     }
   ]

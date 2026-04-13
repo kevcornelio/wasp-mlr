@@ -348,32 +348,33 @@ const ChatPage = () => {
           </div>
         ) : (
           <div className="px-4 py-6 space-y-4">
-          messages.map((msg, i) => (
-            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} fade-in`}>
-              <div
-                className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
-                  msg.role === 'user'
-                    ? 'bg-gradient-to-br from-primary to-orange-500 text-white rounded-br-sm'
-                    : 'bg-card border border-border text-foreground rounded-bl-sm'
-                }`}
-              >
-                {msg.role === 'assistant' ? (
-                  <div className="prose prose-sm dark:prose-invert max-w-none [&_ul]:mt-1 [&_li]:mt-0.5 [&_p]:mt-1 [&_p:first-child]:mt-0">
-                    <ReactMarkdown components={{
-                      a: ({ href, children }) => (
-                        <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary font-medium underline underline-offset-2 hover:opacity-75 transition-opacity">
-                          {children}
-                        </a>
-                      )
-                    }}>{cleanMessage(msg.content)}</ReactMarkdown>
-                  </div>
-                ) : (
-                  msg.content
-                )}
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} fade-in`}>
+                <div
+                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
+                    msg.role === 'user'
+                      ? 'bg-gradient-to-br from-primary to-orange-500 text-white rounded-br-sm'
+                      : 'bg-card border border-border text-foreground rounded-bl-sm'
+                  }`}
+                >
+                  {msg.role === 'assistant' ? (
+                    <div className="prose prose-sm dark:prose-invert max-w-none [&_ul]:mt-1 [&_li]:mt-0.5 [&_p]:mt-1 [&_p:first-child]:mt-0">
+                      <ReactMarkdown components={{
+                        a: ({ href, children }) => (
+                          <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary font-medium underline underline-offset-2 hover:opacity-75 transition-opacity">
+                            {children}
+                          </a>
+                        )
+                      }}>{cleanMessage(msg.content)}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    msg.content
+                  )}
+                </div>
               </div>
-            </div>
-          ))
-        }
+            ))}
+          </div>
+        )}
         {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
           <div className="flex justify-start fade-in">
             <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
@@ -390,7 +391,6 @@ const ChatPage = () => {
             <ChatFeedback places={extractedPlaces} onSubmit={handleFeedbackSubmit} />
           </div>
         )}
-        </div>
       </div>
 
       {/* Input */}
