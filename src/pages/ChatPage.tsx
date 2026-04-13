@@ -309,36 +309,45 @@ const ChatPage = () => {
       )}
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center gap-5 px-4">
-            <div className="relative">
-              <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-primary to-orange-400 flex items-center justify-center shadow-lg">
-                <span className="text-3xl">🌶️</span>
-              </div>
+          <div className="hero-bg flex flex-col items-center justify-center min-h-full text-center px-6 py-16 gap-8">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium">
+              <span>🌶️</span> Mangalore's AI Food Guide
             </div>
-            <div className="space-y-1.5">
-              <h2 className="text-2xl font-bold text-foreground tracking-tight">
-                {user && firstName ? `Hey ${firstName}! 👋` : "What's the vibe?"}
-              </h2>
-              <p className="text-muted-foreground text-sm max-w-sm leading-relaxed">
-                Your AI food guide for Mangalore. Tell me your mood, craving, or who you're with — I'll find the perfect spot.
+
+            {/* Hero text */}
+            <div className="space-y-3 max-w-lg">
+              <h1 className="font-display text-5xl md:text-6xl text-foreground leading-[1.05] tracking-tight">
+                {user && firstName
+                  ? <><span className="text-primary">{firstName},</span><br />what's<br />the craving?</>
+                  : <>Find your<br />next <span className="text-primary">favourite</span><br />meal.</>
+                }
+              </h1>
+              <p className="text-muted-foreground text-base leading-relaxed max-w-sm mx-auto">
+                Tell me your mood, who you're with, or what you're craving. I'll find the perfect dish and spot in Mangalore.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-2 w-full max-w-md mt-2">
+
+            {/* Quick prompts */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
               {QUICK_PROMPTS.map((prompt) => (
                 <button
                   key={prompt}
                   onClick={() => send(prompt)}
-                  className="text-xs px-3 py-2.5 rounded-xl border border-border bg-card hover:bg-accent hover:border-primary/30 text-foreground transition-all text-left shadow-sm hover:shadow"
+                  className="group flex items-start gap-3 px-4 py-3.5 rounded-2xl border border-border bg-card/80 hover:bg-card hover:border-primary/40 hover:shadow-md text-foreground transition-all text-left"
                 >
-                  <MapPin className="h-3 w-3 inline mr-1.5 text-primary" />
-                  {prompt}
+                  <span className="mt-0.5 h-6 w-6 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                    <MapPin className="h-3.5 w-3.5 text-primary" />
+                  </span>
+                  <span className="text-sm leading-snug">{prompt}</span>
                 </button>
               ))}
             </div>
           </div>
         ) : (
+          <div className="px-4 py-6 space-y-4">
           messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} fade-in`}>
               <div
@@ -364,7 +373,7 @@ const ChatPage = () => {
               </div>
             </div>
           ))
-        )}
+        }
         {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
           <div className="flex justify-start fade-in">
             <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
@@ -381,6 +390,7 @@ const ChatPage = () => {
             <ChatFeedback places={extractedPlaces} onSubmit={handleFeedbackSubmit} />
           </div>
         )}
+        </div>
       </div>
 
       {/* Input */}
