@@ -346,7 +346,13 @@ const ChatPage = () => {
               >
                 {msg.role === 'assistant' ? (
                   <div className="prose prose-sm dark:prose-invert max-w-none [&_ul]:mt-1 [&_li]:mt-0.5 [&_p]:mt-1 [&_p:first-child]:mt-0">
-                    <ReactMarkdown>{cleanMessage(msg.content)}</ReactMarkdown>
+                    <ReactMarkdown components={{
+                      a: ({ href, children }) => (
+                        <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline hover:opacity-80">
+                          {children}
+                        </a>
+                      )
+                    }}>{cleanMessage(msg.content)}</ReactMarkdown>
                   </div>
                 ) : (
                   msg.content
