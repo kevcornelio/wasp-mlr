@@ -238,9 +238,9 @@ const ChatPage = () => {
   const firstName = profile?.full_name?.split(' ')[0] || '';
 
   return (
-    <div className="flex flex-col h-screen max-w-3xl mx-auto">
+    <div className="flex flex-col h-screen max-w-3xl mx-auto bg-orange-50">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-10">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-orange-200 bg-white sticky top-0 z-10">
         <div className="flex items-center gap-2.5">
           <div className="h-8 w-8 rounded-xl bg-primary flex items-center justify-center shadow-sm">
             <UtensilsCrossed className="h-4 w-4 text-white" />
