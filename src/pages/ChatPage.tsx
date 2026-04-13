@@ -319,7 +319,7 @@ const ChatPage = () => {
 
             {/* Hero text */}
             <div className="space-y-3 max-w-lg">
-              <h1 className="font-display text-5xl md:text-6xl text-foreground leading-[1.05] tracking-tight">
+              <h1 className="text-5xl md:text-6xl text-foreground leading-[1.05] tracking-tight" style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800 }}>
                 {user && firstName
                   ? <><span className="text-primary">{firstName},</span><br />what's<br />the craving?</>
                   : <>Find your<br />next <span className="text-primary">favourite</span><br />meal.</>
