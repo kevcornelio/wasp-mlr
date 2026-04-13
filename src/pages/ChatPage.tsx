@@ -239,55 +239,57 @@ const ChatPage = () => {
 
   return (
     <div className="flex flex-col h-screen max-w-3xl mx-auto">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-muted/30">
-        <div className="text-xs text-muted-foreground">
-          {user ? (
-            <span className="text-foreground font-medium">Hi, {firstName}! 👋</span>
-          ) : (
-            <>
-              Chat history saves on this device.{' '}
-              <a href="/auth" className="text-primary font-medium hover:underline">Sign in</a>{' '}
-              to sync across devices.
-            </>
-          )}
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-10">
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-xl bg-primary flex items-center justify-center shadow-sm">
+            <UtensilsCrossed className="h-4 w-4 text-white" />
+          </div>
+          <div>
+            <span className="font-semibold text-sm text-foreground tracking-tight">Wasp MLR</span>
+            {user && firstName && (
+              <span className="text-xs text-muted-foreground ml-1.5">· Hey {firstName}!</span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" onClick={startNewChat} className="h-7 text-xs gap-1">
-            <Plus className="h-3 w-3" /> New
+          <Button variant="ghost" size="sm" onClick={startNewChat} className="h-8 text-xs gap-1.5 rounded-lg">
+            <Plus className="h-3.5 w-3.5" /> New
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => setShowHistory(!showHistory)} className="h-7 text-xs gap-1">
-            <History className="h-3 w-3" /> History
+          <Button variant="ghost" size="sm" onClick={() => setShowHistory(!showHistory)} className={`h-8 text-xs gap-1.5 rounded-lg ${showHistory ? 'bg-accent' : ''}`}>
+            <History className="h-3.5 w-3.5" /> History
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => navigate('/preferences')} className="h-7 text-xs gap-1">
-            <Settings className="h-3 w-3" />
+          <Button variant="ghost" size="sm" onClick={() => navigate('/preferences')} className="h-8 w-8 p-0 rounded-lg">
+            <Settings className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => navigate('/spots')} className="h-7 text-xs gap-1">
-            <Utensils className="h-3 w-3" />
+          <Button variant="ghost" size="sm" onClick={() => navigate('/spots')} className="h-8 w-8 p-0 rounded-lg">
+            <Utensils className="h-3.5 w-3.5" />
           </Button>
-          {user && (
-            <Button variant="ghost" size="sm" onClick={() => { signOut(); }} className="h-7 text-xs gap-1 text-muted-foreground">
-              <LogOut className="h-3 w-3" /> Sign out
+          {user ? (
+            <Button variant="ghost" size="sm" onClick={() => { signOut(); }} className="h-8 w-8 p-0 rounded-lg text-muted-foreground">
+              <LogOut className="h-3.5 w-3.5" />
             </Button>
+          ) : (
+            <a href="/auth" className="text-xs text-primary font-medium hover:underline px-2">Sign in</a>
           )}
         </div>
       </div>
 
       {/* History panel */}
       {showHistory && (
-        <div className="border-b border-border bg-card px-4 py-3 max-h-60 overflow-y-auto">
-          <h3 className="text-sm font-medium text-foreground mb-2">Past conversations</h3>
+        <div className="border-b border-border bg-card/95 px-4 py-3 max-h-56 overflow-y-auto shadow-sm">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Recent conversations</h3>
           {sessions.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No conversations yet.</p>
+            <p className="text-xs text-muted-foreground py-2">No conversations yet.</p>
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {sessions.map(s => (
                 <div key={s.id} className="flex items-center justify-between group">
                   <button
                     onClick={() => loadSession(s.id)}
-                    className={`flex-1 text-left text-xs px-2 py-1.5 rounded-md transition-colors truncate ${
+                    className={`flex-1 text-left text-xs px-2.5 py-2 rounded-lg transition-colors truncate ${
                       activeSessionId === s.id
-                        ? 'bg-primary/10 text-primary'
+                        ? 'bg-primary/10 text-primary font-medium'
                         : 'text-foreground hover:bg-accent'
                     }`}
                   >
@@ -295,7 +297,7 @@ const ChatPage = () => {
                   </button>
                   <button
                     onClick={() => deleteSession(s.id)}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-destructive transition-all"
+                    className="opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-destructive transition-all rounded-md"
                   >
                     <Trash2 className="h-3 w-3" />
                   </button>
@@ -309,26 +311,28 @@ const ChatPage = () => {
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center gap-4">
-            <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-              <UtensilsCrossed className="h-8 w-8 text-primary" />
+          <div className="flex flex-col items-center justify-center h-full text-center gap-5 px-4">
+            <div className="relative">
+              <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-primary to-orange-400 flex items-center justify-center shadow-lg">
+                <span className="text-3xl">🌶️</span>
+              </div>
             </div>
-            <div>
-              <h2 className="text-xl font-semibold text-foreground">
-                {user && firstName ? `Hey ${firstName}, Wasp!` : "What's the vibe?"}
+            <div className="space-y-1.5">
+              <h2 className="text-2xl font-bold text-foreground tracking-tight">
+                {user && firstName ? `Hey ${firstName}! 👋` : "What's the vibe?"}
               </h2>
-              <p className="text-muted-foreground text-sm mt-1 max-w-md">
-                Your AI-powered food guide for Mangalore! Tell me your mood, who you're with, or what you're craving — I'll find the perfect dish and place for you.
+              <p className="text-muted-foreground text-sm max-w-sm leading-relaxed">
+                Your AI food guide for Mangalore. Tell me your mood, craving, or who you're with — I'll find the perfect spot.
               </p>
             </div>
-            <div className="flex flex-wrap gap-2 mt-4 max-w-lg justify-center">
+            <div className="grid grid-cols-2 gap-2 w-full max-w-md mt-2">
               {QUICK_PROMPTS.map((prompt) => (
                 <button
                   key={prompt}
                   onClick={() => send(prompt)}
-                  className="text-xs px-3 py-2 rounded-lg border border-border bg-card hover:bg-accent text-foreground transition-colors text-left"
+                  className="text-xs px-3 py-2.5 rounded-xl border border-border bg-card hover:bg-accent hover:border-primary/30 text-foreground transition-all text-left shadow-sm hover:shadow"
                 >
-                  <MapPin className="h-3 w-3 inline mr-1 text-primary" />
+                  <MapPin className="h-3 w-3 inline mr-1.5 text-primary" />
                   {prompt}
                 </button>
               ))}
@@ -336,19 +340,19 @@ const ChatPage = () => {
           </div>
         ) : (
           messages.map((msg, i) => (
-            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} fade-in`}>
               <div
-                className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
+                className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
                   msg.role === 'user'
-                    ? 'bg-primary text-primary-foreground rounded-br-md'
-                    : 'bg-card border border-border text-foreground rounded-bl-md'
+                    ? 'bg-gradient-to-br from-primary to-orange-500 text-white rounded-br-sm'
+                    : 'bg-card border border-border text-foreground rounded-bl-sm'
                 }`}
               >
                 {msg.role === 'assistant' ? (
                   <div className="prose prose-sm dark:prose-invert max-w-none [&_ul]:mt-1 [&_li]:mt-0.5 [&_p]:mt-1 [&_p:first-child]:mt-0">
                     <ReactMarkdown components={{
                       a: ({ href, children }) => (
-                        <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline hover:opacity-80">
+                        <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary font-medium underline underline-offset-2 hover:opacity-75 transition-opacity">
                           {children}
                         </a>
                       )
@@ -362,39 +366,48 @@ const ChatPage = () => {
           ))
         )}
         {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
-          <div className="flex justify-start">
-            <div className="bg-card border border-border rounded-2xl rounded-bl-md px-4 py-3">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          <div className="flex justify-start fade-in">
+            <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
+              <div className="flex gap-1 items-center">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:0ms]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:150ms]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:300ms]" />
+              </div>
             </div>
           </div>
         )}
         {showFeedback && extractedPlaces.length > 0 && !isLoading && (
-          <div className="mt-2">
+          <div className="mt-2 fade-in">
             <ChatFeedback places={extractedPlaces} onSubmit={handleFeedbackSubmit} />
           </div>
         )}
       </div>
 
       {/* Input */}
-      <div className="border-t border-border p-4 bg-background">
+      <div className="border-t border-border p-4 bg-card/80 backdrop-blur-sm">
         <div className="flex gap-2 items-end max-w-3xl mx-auto">
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="What's the vibe? Tell me your mood, craving, or occasion..."
-            className="min-h-[44px] max-h-32 resize-none rounded-xl"
+            placeholder="What are you craving? 🍛"
+            className="min-h-[44px] max-h-32 resize-none rounded-xl border-border focus:border-primary/50 bg-background"
             rows={1}
           />
           <Button
             onClick={() => send(input)}
             disabled={!input.trim() || isLoading}
             size="icon"
-            className="rounded-xl h-11 w-11 shrink-0"
+            className="rounded-xl h-11 w-11 shrink-0 bg-primary hover:bg-primary/90 shadow-sm"
           >
             <Send className="h-4 w-4" />
           </Button>
         </div>
+        {!user && (
+          <p className="text-center text-xs text-muted-foreground mt-2">
+            <a href="/auth" className="text-primary font-medium hover:underline">Sign in</a> to sync chat history across devices
+          </p>
+        )}
       </div>
     </div>
   );
