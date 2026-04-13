@@ -1,5 +1,88 @@
 export const config = { runtime: 'edge' };
 
+/**
+ * RAG Retrieval - Query Supabase for community recommendations
+ */
+async function getCommunitRecommendations(userMessage: string): Promise<string> {
+  try {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.warn('Supabase credentials not configured for RAG');
+      return '';
+    }
+
+    // Extract simple cuisine/mood keywords from message
+    const lowerMsg = userMessage.toLowerCase();
+    const cuisineKeywords = [
+      'seafood', 'fish', 'vegetarian', 'vegan', 'chinese', 'north indian',
+      'spicy', 'healthy', 'mangalorean', 'casual', 'date'
+    ];
+
+    const matchedKeywords = cuisineKeywords
+      .filter(kw => lowerMsg.includes(kw))
+      .slice(0, 3);
+
+    // Query Supabase REST API for matching recommendations
+    const query = new URLSearchParams({
+      select: 'restaurant_name,cuisine_type,price_range,location,notes,rating,tags,helpful_count',
+      order: 'helpful_count.desc,rating.desc,created_at.desc',
+      limit: '5'
+    });
+
+    // Add tag filter if keywords found
+    if (matchedKeywords.length > 0) {
+      query.append('tags', `cs.{"${matchedKeywords[0]}"}`);
+    }
+
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/community_recommendations?${query.toString()}`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      console.warn('RAG query failed:', response.status);
+      return '';
+    }
+
+    const recommendations = await response.json() as Array<{
+      restaurant_name: string;
+      cuisine_type?: string;
+      location?: string;
+      notes?: string;
+      rating?: number;
+      helpful_count?: number;
+    }>;
+
+    if (!recommendations.length) {
+      return '';
+    }
+
+    // Format recommendations as context
+    const formattedRecs = recommendations
+      .map(rec => {
+        const parts = [rec.restaurant_name];
+        if (rec.cuisine_type) parts.push(rec.cuisine_type);
+        if (rec.location) parts.push(`Loc: ${rec.location}`);
+        const rating = rec.rating ? `★${rec.rating}` : '';
+        return `• ${parts.join(', ')} ${rating}`.trim();
+      })
+      .join('\n');
+
+    return `\n\n📍 Community Recommendations:\n${formattedRecs}`;
+  } catch (err) {
+    console.error('RAG retrieval error:', err);
+    return '';
+  }
+}
+
 const SYSTEM_PROMPT = `You are "Wasp MLR" — a warm, food-obsessed advisor for Mangalore, Karnataka, India.
 
 Your PRIMARY focus is THE FOOD — the dishes, flavors, and cravings. Restaurants are secondary; you recommend them as the best places to satisfy a specific food craving.
@@ -65,6 +148,16 @@ export default async function handler(req: Request) {
     const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
     if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is not configured');
 
+    // Get last user message for RAG retrieval
+    const lastUserMessage = messages
+      .slice()
+      .reverse()
+      .find((m: any) => m.role === 'user')?.content || '';
+
+    // Retrieve relevant community recommendations
+    const ragContext = await getCommunitRecommendations(lastUserMessage);
+    const enhancedSystemPrompt = SYSTEM_PROMPT + ragContext;
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -75,7 +168,7 @@ export default async function handler(req: Request) {
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
-        system: SYSTEM_PROMPT,
+        system: enhancedSystemPrompt,
         messages,
         stream: true,
       }),

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Send, UtensilsCrossed, MapPin, Loader2, History, Plus, LogOut, Trash2, Settings, Utensils } from 'lucide-react';
+import { Send, UtensilsCrossed, MapPin, Loader2, History, Plus, LogOut, Trash2, Settings, Utensils, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
@@ -9,6 +9,7 @@ import { getDeviceId } from '@/lib/deviceId';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import ChatFeedback from '@/components/ChatFeedback';
+import SaveRecommendationModal from '@/components/SaveRecommendationModal';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
@@ -32,6 +33,8 @@ const ChatPage = () => {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [extractedPlaces, setExtractedPlaces] = useState<string[]>([]);
+  const [saveRecommendationOpen, setSaveRecommendationOpen] = useState(false);
+  const [selectedRestaurantForSave, setSelectedRestaurantForSave] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Use authenticated client for logged-in users, anon client otherwise
@@ -221,6 +224,14 @@ const ChatPage = () => {
   // Strip the [PLACES: ...] tag from displayed messages
   const cleanMessage = (content: string) => content.replace(/\[PLACES:\s*.+?\]/gi, '').trim();
 
+  // Extract the first restaurant name from [PLACES: ...] tag for Save Recommendation modal
+  const getFirstRestaurantFromMessage = (content: string): string => {
+    const match = content.match(/\[PLACES:\s*([^\]]+)\]/i);
+    if (!match) return '';
+    const restaurants = match[1].split(',').map(r => r.trim());
+    return restaurants[0] || '';
+  };
+
   const handleFeedbackSubmit = async (items: { place: string; visited: boolean; rating: number; comment: string }[]) => {
     if (!activeSessionId) return;
     const payload = items.map(item => ({
@@ -350,25 +361,40 @@ const ChatPage = () => {
           <div className="px-4 py-6 space-y-4">
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} fade-in`}>
-                <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
-                    msg.role === 'user'
-                      ? 'bg-gradient-to-br from-primary to-orange-500 text-white rounded-br-sm'
-                      : 'bg-card border border-border text-foreground rounded-bl-sm'
-                  }`}
-                >
-                  {msg.role === 'assistant' ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none [&_ul]:mt-1 [&_li]:mt-0.5 [&_p]:mt-1 [&_p:first-child]:mt-0">
-                      <ReactMarkdown components={{
-                        a: ({ href, children }) => (
-                          <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary font-medium underline underline-offset-2 hover:opacity-75 transition-opacity">
-                            {children}
-                          </a>
-                        )
-                      }}>{cleanMessage(msg.content)}</ReactMarkdown>
-                    </div>
-                  ) : (
-                    msg.content
+                <div className="flex flex-col gap-2 w-full max-w-[85%]">
+                  <div
+                    className={`rounded-2xl px-4 py-3 text-sm shadow-sm ${
+                      msg.role === 'user'
+                        ? 'bg-gradient-to-br from-primary to-orange-500 text-white rounded-br-sm'
+                        : 'bg-card border border-border text-foreground rounded-bl-sm'
+                    }`}
+                  >
+                    {msg.role === 'assistant' ? (
+                      <div className="prose prose-sm dark:prose-invert max-w-none [&_ul]:mt-1 [&_li]:mt-0.5 [&_p]:mt-1 [&_p:first-child]:mt-0">
+                        <ReactMarkdown components={{
+                          a: ({ href, children }) => (
+                            <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary font-medium underline underline-offset-2 hover:opacity-75 transition-opacity">
+                              {children}
+                            </a>
+                          )
+                        }}>{cleanMessage(msg.content)}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      msg.content
+                    )}
+                  </div>
+                  {msg.role === 'assistant' && msg.content.includes('[PLACES:') && (
+                    <button
+                      onClick={() => {
+                        const restaurant = getFirstRestaurantFromMessage(msg.content);
+                        setSelectedRestaurantForSave(restaurant);
+                        setSaveRecommendationOpen(true);
+                      }}
+                      className="self-start flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                    >
+                      <Heart className="h-3.5 w-3.5" />
+                      Save This
+                    </button>
                   )}
                 </div>
               </div>
@@ -419,6 +445,17 @@ const ChatPage = () => {
           </p>
         )}
       </div>
+
+      {/* Save Recommendation Modal */}
+      <SaveRecommendationModal
+        open={saveRecommendationOpen}
+        onOpenChange={setSaveRecommendationOpen}
+        restaurantName={selectedRestaurantForSave}
+        sessionId={activeSessionId || undefined}
+        onSuccess={() => {
+          // Optionally show a success toast here
+        }}
+      />
     </div>
   );
 };
