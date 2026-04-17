@@ -8,6 +8,7 @@ import ChatPage from "@/pages/ChatPage";
 import AuthPage from "@/pages/AuthPage";
 import PreferencesPage from "@/pages/PreferencesPage";
 import FoodSpotsPage from "@/pages/FoodSpotsPage";
+import AdminPage from "@/pages/AdminPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/preferences" element={<PreferencesPage />} />
             <Route path="/spots" element={<FoodSpotsPage />} />
+            <Route path="/admin" element={<AdminPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
