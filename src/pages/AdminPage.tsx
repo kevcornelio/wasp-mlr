@@ -2,7 +2,17 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { MessageSquare, Users, Star, TrendingUp, Heart, ArrowLeft, RefreshCw } from 'lucide-react';
+import { MessageSquare, Users, Star, TrendingUp, Heart, ArrowLeft, RefreshCw, BookOpen, CheckCircle, XCircle, Clock } from 'lucide-react';
+
+interface PendingBlog {
+  id: string;
+  author_name: string;
+  author_email: string | null;
+  title: string;
+  body: string;
+  restaurant_name: string | null;
+  created_at: string;
+}
 
 // 🔒 Admin access restricted to this email
 const ADMIN_EMAIL = 'kev.cornelio@gmail.com';
@@ -23,6 +33,8 @@ export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [fetching, setFetching] = useState(true);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+  const [pendingBlogs, setPendingBlogs] = useState<PendingBlog[]>([]);
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
 
   const isAdmin = user?.email === ADMIN_EMAIL;
 
@@ -96,12 +108,27 @@ export default function AdminPage() {
         dailyChats: [],
       });
 
+      // Fetch pending blogs
+      const { data: blogsData } = await supabase
+        .from('food_blogs')
+        .select('id, author_name, author_email, title, body, restaurant_name, created_at')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true });
+      setPendingBlogs(blogsData || []);
+
       setLastRefreshed(new Date());
     } catch (err) {
       console.error('Error fetching admin stats:', err);
     } finally {
       setFetching(false);
     }
+  };
+
+  const handleBlogAction = async (blogId: string, action: 'approved' | 'rejected') => {
+    setReviewingId(blogId);
+    await supabase.from('food_blogs').update({ status: action }).eq('id', blogId);
+    setPendingBlogs(prev => prev.filter(b => b.id !== blogId));
+    setReviewingId(null);
   };
 
   useEffect(() => {
@@ -269,6 +296,69 @@ export default function AdminPage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Blog Approval Queue */}
+        <div className="bg-card border border-border rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-violet-500" />
+              <h2 className="font-semibold text-sm text-foreground">Blog Approval Queue</h2>
+            </div>
+            {pendingBlogs.length > 0 && (
+              <span className="flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                <Clock className="h-3 w-3" />
+                {pendingBlogs.length} pending
+              </span>
+            )}
+          </div>
+
+          {pendingBlogs.length === 0 ? (
+            <div className="text-center py-6 space-y-1">
+              <CheckCircle className="h-8 w-8 text-green-400 mx-auto" />
+              <p className="text-sm text-muted-foreground">All caught up! No blogs pending review.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {pendingBlogs.map(blog => (
+                <div key={blog.id} className="border border-border rounded-xl p-4 space-y-3">
+                  <div>
+                    <h3 className="font-semibold text-sm text-foreground">{blog.title}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      by {blog.author_name} {blog.author_email ? `(${blog.author_email})` : ''} ·{' '}
+                      {new Date(blog.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                    </p>
+                    {blog.restaurant_name && (
+                      <span className="inline-block text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full mt-1">
+                        📍 {blog.restaurant_name}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-4 border-l-2 border-border pl-3">
+                    {blog.body}
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleBlogAction(blog.id, 'approved')}
+                      disabled={reviewingId === blog.id}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-green-500 text-white text-xs font-medium rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+                    >
+                      <CheckCircle className="h-3.5 w-3.5" />
+                      Approve & Publish
+                    </button>
+                    <button
+                      onClick={() => handleBlogAction(blog.id, 'rejected')}
+                      disabled={reviewingId === blog.id}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 border border-destructive/40 text-destructive text-xs font-medium rounded-lg hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                    >
+                      <XCircle className="h-3.5 w-3.5" />
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Footer note */}
