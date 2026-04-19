@@ -8,7 +8,7 @@ interface Blog {
   id: string;
   author_name: string;
   title: string;
-  body: string;
+  content: string;
   restaurant_name: string | null;
   created_at: string;
 }
@@ -22,8 +22,8 @@ export default function BlogListPage() {
   useEffect(() => {
     const fetchBlogs = async () => {
       const { data } = await supabase
-        .from('food_blogs')
-        .select('id, author_name, title, body, restaurant_name, created_at')
+        .from('blog_posts')
+        .select('id, author_name, title, content, restaurant_name, created_at')
         .eq('status', 'approved')
         .order('created_at', { ascending: false });
       setBlogs(data || []);
@@ -134,7 +134,7 @@ export default function BlogListPage() {
                       {blog.title}
                     </h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      {excerpt(blog.body)}
+                      {excerpt(blog.content)}
                     </p>
                     <div className="flex items-center gap-3 mt-3 flex-wrap">
                       {blog.restaurant_name && (

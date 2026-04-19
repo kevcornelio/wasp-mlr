@@ -7,7 +7,7 @@ interface Blog {
   id: string;
   author_name: string;
   title: string;
-  body: string;
+  content: string;
   restaurant_name: string | null;
   created_at: string;
 }
@@ -22,8 +22,8 @@ export default function BlogPostPage() {
   useEffect(() => {
     const fetchBlog = async () => {
       const { data } = await supabase
-        .from('food_blogs')
-        .select('id, author_name, title, body, restaurant_name, created_at')
+        .from('blog_posts')
+        .select('id, author_name, title, content, restaurant_name, created_at')
         .eq('id', id)
         .eq('status', 'approved')
         .single();
@@ -111,7 +111,7 @@ export default function BlogPostPage() {
 
         {/* Body */}
         <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none text-foreground leading-relaxed whitespace-pre-wrap">
-          {blog.body}
+          {blog.content}
         </div>
 
         {/* Footer */}

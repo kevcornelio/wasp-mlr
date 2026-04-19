@@ -32,14 +32,17 @@ export default function BlogEditorPage() {
 
     setSubmitting(true);
     try {
-      const { error: insertError } = await supabase.rpc('insert_food_blog', {
-        p_user_id: user.id,
-        p_author_name: profile?.full_name || user.email?.split('@')[0] || 'Anonymous',
-        p_author_email: user.email || '',
-        p_title: title.trim(),
-        p_body: body.trim(),
-        p_restaurant_name: restaurantName.trim() || null,
-      });
+      const { error: insertError } = await supabase
+        .from('blog_posts')
+        .insert([{
+          user_id: user.id,
+          author_name: profile?.full_name || user.email?.split('@')[0] || 'Anonymous',
+          author_email: user.email,
+          title: title.trim(),
+          content: body.trim(),
+          restaurant_name: restaurantName.trim() || null,
+          status: 'pending',
+        }]);
 
       if (insertError) {
         setError(`Error: ${insertError.message} (code: ${insertError.code})`);

@@ -9,7 +9,7 @@ interface PendingBlog {
   author_name: string;
   author_email: string | null;
   title: string;
-  body: string;
+  content: string;
   restaurant_name: string | null;
   created_at: string;
 }
@@ -110,8 +110,8 @@ export default function AdminPage() {
 
       // Fetch pending blogs
       const { data: blogsData } = await supabase
-        .from('food_blogs')
-        .select('id, author_name, author_email, title, body, restaurant_name, created_at')
+        .from('blog_posts')
+        .select('id, author_name, author_email, title, content, restaurant_name, created_at')
         .eq('status', 'pending')
         .order('created_at', { ascending: true });
       setPendingBlogs(blogsData || []);
@@ -126,7 +126,7 @@ export default function AdminPage() {
 
   const handleBlogAction = async (blogId: string, action: 'approved' | 'rejected') => {
     setReviewingId(blogId);
-    await supabase.from('food_blogs').update({ status: action }).eq('id', blogId);
+    await supabase.from('blog_posts').update({ status: action }).eq('id', blogId);
     setPendingBlogs(prev => prev.filter(b => b.id !== blogId));
     setReviewingId(null);
   };
@@ -335,7 +335,7 @@ export default function AdminPage() {
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed line-clamp-4 border-l-2 border-border pl-3">
-                    {blog.body}
+                    {blog.content}
                   </p>
                   <div className="flex gap-2">
                     <button
