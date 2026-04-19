@@ -45,7 +45,7 @@ export default function BlogEditorPage() {
         }]);
 
       if (insertError) {
-        setError('Failed to submit. Please try again.');
+        setError(`Error: ${insertError.message} (code: ${insertError.code})`);
         console.error(insertError);
         return;
       }
