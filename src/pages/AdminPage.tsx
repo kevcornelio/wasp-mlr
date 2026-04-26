@@ -23,8 +23,16 @@ interface Stats {
   totalRecommendations: number;
   avgRating: number;
   topRestaurants: { restaurant_name: string; count: number; avg_rating: number }[];
-  recentSessions: { id: string; title: string; created_at: string }[];
+  recentSessions: { id: string; title: string; created_at: string; user_email: string | null }[];
   dailyChats: { date: string; count: number }[];
+}
+
+interface UserProfile {
+  id: string;
+  full_name: string;
+  email: string;
+  created_at: string;
+  chat_count: number;
 }
 
 export default function AdminPage() {
@@ -35,6 +43,7 @@ export default function AdminPage() {
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
   const [pendingBlogs, setPendingBlogs] = useState<PendingBlog[]>([]);
   const [allBlogs, setAllBlogs] = useState<(PendingBlog & { status: string })[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -50,28 +59,16 @@ export default function AdminPage() {
         recommendationsResult,
         topRestaurantsResult,
         recentSessionsResult,
+        profilesResult,
+        userSessionCountResult,
       ] = await Promise.all([
-        // Total chat sessions
         supabase.from('chat_sessions').select('*', { count: 'exact', head: true }),
-
-        // Total messages
         supabase.from('chat_messages').select('*', { count: 'exact', head: true }),
-
-        // Community recommendations with avg rating
         supabase.from('community_recommendations').select('rating'),
-
-        // Top restaurants from community recommendations
-        supabase
-          .from('community_recommendations')
-          .select('restaurant_name, rating')
-          .order('rating', { ascending: false }),
-
-        // Recent sessions
-        supabase
-          .from('chat_sessions')
-          .select('id, title, created_at')
-          .order('created_at', { ascending: false })
-          .limit(8),
+        supabase.from('community_recommendations').select('restaurant_name, rating').order('rating', { ascending: false }),
+        supabase.from('chat_sessions').select('id, title, created_at, user_id').order('created_at', { ascending: false }).limit(10),
+        supabase.from('profiles').select('id, full_name, email, created_at').order('created_at', { ascending: false }),
+        supabase.from('chat_sessions').select('user_id').not('user_id', 'is', null),
       ]);
 
       // Calculate avg rating
@@ -100,13 +97,33 @@ export default function AdminPage() {
         .sort((a, b) => b.count - a.count)
         .slice(0, 6);
 
+      // Build per-user chat counts
+      const chatCountMap = new Map<string, number>();
+      (userSessionCountResult.data || []).forEach(s => {
+        if (s.user_id) chatCountMap.set(s.user_id, (chatCountMap.get(s.user_id) || 0) + 1);
+      });
+
+      // Build profiles list with chat counts
+      const profilesWithCounts: UserProfile[] = (profilesResult.data || []).map(p => ({
+        ...p,
+        chat_count: chatCountMap.get(p.id) || 0,
+      }));
+      setUsers(profilesWithCounts);
+
+      // Build recent sessions with user emails
+      const profileEmailMap = new Map((profilesResult.data || []).map(p => [p.id, p.email]));
+      const recentSessions = (recentSessionsResult.data || []).map(s => ({
+        ...s,
+        user_email: s.user_id ? (profileEmailMap.get(s.user_id) || 'Unknown') : 'Anonymous',
+      }));
+
       setStats({
         totalSessions: sessionsResult.count || 0,
         totalMessages: messagesResult.count || 0,
         totalRecommendations: recommendationsResult.data?.length || 0,
         avgRating,
         topRestaurants,
-        recentSessions: recentSessionsResult.data || [],
+        recentSessions,
         dailyChats: [],
       });
 
@@ -290,31 +307,59 @@ export default function AdminPage() {
           {/* Recent Sessions */}
           <div className="bg-card border border-border rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-4">
-              <Users className="h-4 w-4 text-blue-500" />
+              <MessageSquare className="h-4 w-4 text-blue-500" />
               <h2 className="font-semibold text-sm text-foreground">Recent Chats</h2>
             </div>
             {stats?.recentSessions.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                No chats yet.
-              </p>
+              <p className="text-sm text-muted-foreground py-4 text-center">No chats yet.</p>
             ) : (
               <div className="space-y-1">
                 {stats?.recentSessions.map(s => (
-                  <div key={s.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                    <span className="text-sm text-foreground truncate max-w-[200px]">
-                      {s.title || 'Untitled chat'}
-                    </span>
+                  <div key={s.id} className="flex items-center justify-between py-2 border-b border-border last:border-0 gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-foreground truncate">{s.title || 'Untitled chat'}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{s.user_email}</p>
+                    </div>
                     <span className="text-xs text-muted-foreground shrink-0">
-                      {new Date(s.created_at).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'short',
-                      })}
+                      {new Date(s.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                     </span>
                   </div>
                 ))}
               </div>
             )}
           </div>
+        </div>
+
+        {/* Users */}
+        <div className="bg-card border border-border rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Users className="h-4 w-4 text-violet-500" />
+            <h2 className="font-semibold text-sm text-foreground">Registered Users</h2>
+            <span className="text-xs text-muted-foreground ml-1">({users.length})</span>
+          </div>
+          {users.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">No users yet.</p>
+          ) : (
+            <div className="space-y-1">
+              {users.map(u => (
+                <div key={u.id} className="flex items-center justify-between py-2 border-b border-border last:border-0 gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{u.full_name || '—'}</p>
+                    <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0 text-right">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{u.chat_count}</p>
+                      <p className="text-[10px] text-muted-foreground">chats</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(u.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Blog Approval Queue */}
