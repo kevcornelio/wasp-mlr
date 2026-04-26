@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Send, UtensilsCrossed, MapPin, Loader2, History, Plus, LogOut, Trash2, Settings, Utensils, Heart, BookOpen } from 'lucide-react';
+import { Send, UtensilsCrossed, MapPin, Loader2, History, Plus, LogOut, Trash2, Settings, Utensils, Heart, BookOpen, ChevronRight, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
@@ -35,6 +35,14 @@ const ChatPage = () => {
   const [extractedPlaces, setExtractedPlaces] = useState<string[]>([]);
   const [saveRecommendationOpen, setSaveRecommendationOpen] = useState(false);
   const [selectedRestaurantForSave, setSelectedRestaurantForSave] = useState('');
+  const [latestBlogs, setLatestBlogs] = useState<{
+    id: string;
+    title: string;
+    content: string;
+    author_name: string;
+    restaurant_name: string | null;
+    created_at: string;
+  }[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Use authenticated client for logged-in users, anon client otherwise
@@ -55,6 +63,20 @@ const ChatPage = () => {
     };
     loadSessions();
   }, [db]);
+
+  // Load latest approved blogs for home-page preview
+  useEffect(() => {
+    const loadBlogs = async () => {
+      const { data } = await supabase
+        .from('blog_posts')
+        .select('id, title, content, author_name, restaurant_name, created_at')
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false })
+        .limit(3);
+      if (data) setLatestBlogs(data);
+    };
+    loadBlogs();
+  }, []);
 
   const loadSession = async (sessionId: string) => {
     const { data } = await db
@@ -359,6 +381,53 @@ const ChatPage = () => {
                 </button>
               ))}
             </div>
+
+            {/* Latest community blogs */}
+            {latestBlogs.length > 0 && (
+              <div className="w-full max-w-lg space-y-3 pt-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-4 w-4 text-primary" />
+                    <h2 className="text-sm font-semibold text-foreground tracking-tight">Latest food stories</h2>
+                  </div>
+                  <button
+                    onClick={() => navigate('/blog')}
+                    className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5"
+                  >
+                    View all <ChevronRight className="h-3 w-3" />
+                  </button>
+                </div>
+                <div className="space-y-2.5">
+                  {latestBlogs.map((blog) => (
+                    <button
+                      key={blog.id}
+                      onClick={() => navigate(`/blog/${blog.id}`)}
+                      className="group w-full text-left bg-card/80 hover:bg-card border border-border hover:border-primary/40 hover:shadow-md rounded-2xl px-4 py-3 transition-all"
+                    >
+                      <h3 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-1">
+                        {blog.title}
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-2">
+                        {blog.content}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        {blog.restaurant_name && (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-primary font-medium bg-primary/10 px-1.5 py-0.5 rounded-full">
+                            <MapPin className="h-2.5 w-2.5" />
+                            {blog.restaurant_name}
+                          </span>
+                        )}
+                        <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <Calendar className="h-2.5 w-2.5" />
+                          {new Date(blog.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">by {blog.author_name}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="px-4 py-6 space-y-4">
