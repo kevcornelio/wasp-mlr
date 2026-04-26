@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { MessageSquare, Users, Star, TrendingUp, Heart, ArrowLeft, RefreshCw, BookOpen, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { MessageSquare, Users, Star, TrendingUp, Heart, ArrowLeft, RefreshCw, BookOpen, CheckCircle, XCircle, Clock, Trash2 } from 'lucide-react';
 
 interface PendingBlog {
   id: string;
@@ -34,7 +34,9 @@ export default function AdminPage() {
   const [fetching, setFetching] = useState(true);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
   const [pendingBlogs, setPendingBlogs] = useState<PendingBlog[]>([]);
+  const [allBlogs, setAllBlogs] = useState<(PendingBlog & { status: string })[]>([]);
   const [reviewingId, setReviewingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const isAdmin = user?.email === ADMIN_EMAIL;
 
@@ -116,6 +118,14 @@ export default function AdminPage() {
         .order('created_at', { ascending: true });
       setPendingBlogs(blogsData || []);
 
+      // Fetch all blogs (approved + rejected)
+      const { data: allBlogsData } = await supabase
+        .from('blog_posts')
+        .select('id, author_name, author_email, title, content, restaurant_name, created_at, status')
+        .in('status', ['approved', 'rejected'])
+        .order('created_at', { ascending: false });
+      setAllBlogs(allBlogsData || []);
+
       setLastRefreshed(new Date());
     } catch (err) {
       console.error('Error fetching admin stats:', err);
@@ -129,6 +139,15 @@ export default function AdminPage() {
     await supabase.from('blog_posts').update({ status: action }).eq('id', blogId);
     setPendingBlogs(prev => prev.filter(b => b.id !== blogId));
     setReviewingId(null);
+  };
+
+  const handleBlogDelete = async (blogId: string) => {
+    if (!confirm('Delete this blog post permanently?')) return;
+    setDeletingId(blogId);
+    await supabase.from('blog_posts').delete().eq('id', blogId);
+    setPendingBlogs(prev => prev.filter(b => b.id !== blogId));
+    setAllBlogs(prev => prev.filter(b => b.id !== blogId));
+    setDeletingId(null);
   };
 
   useEffect(() => {
@@ -354,12 +373,58 @@ export default function AdminPage() {
                       <XCircle className="h-3.5 w-3.5" />
                       Reject
                     </button>
+                    <button
+                      onClick={() => handleBlogDelete(blog.id)}
+                      disabled={deletingId === blog.id}
+                      className="flex items-center justify-center px-3 py-2 border border-destructive/40 text-destructive text-xs font-medium rounded-lg hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
           )}
         </div>
+
+        {/* All Published/Rejected Blogs */}
+        {allBlogs.length > 0 && (
+          <div className="bg-card border border-border rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <BookOpen className="h-4 w-4 text-blue-500" />
+              <h2 className="font-semibold text-sm text-foreground">All Blog Posts</h2>
+              <span className="text-xs text-muted-foreground ml-1">({allBlogs.length})</span>
+            </div>
+            <div className="space-y-3">
+              {allBlogs.map(blog => (
+                <div key={blog.id} className="flex items-start justify-between gap-3 py-2 border-b border-border last:border-0">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-sm text-foreground truncate max-w-[280px]">{blog.title}</span>
+                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                        blog.status === 'approved'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-red-100 text-red-600'
+                      }`}>
+                        {blog.status}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      by {blog.author_name} · {new Date(blog.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleBlogDelete(blog.id)}
+                    disabled={deletingId === blog.id}
+                    className="shrink-0 p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Footer note */}
         <p className="text-xs text-muted-foreground text-center pb-4">
