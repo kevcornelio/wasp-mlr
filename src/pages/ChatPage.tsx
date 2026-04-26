@@ -271,10 +271,11 @@ const ChatPage = () => {
   const firstName = profile?.full_name?.split(' ')[0] || '';
 
   return (
-    <div className="flex flex-col h-screen bg-orange-50">
+    <div className="h-screen bg-orange-100 flex justify-center overflow-hidden">
+    <div className="flex flex-col w-full max-w-2xl bg-orange-50 shadow-xl">
       {/* Header */}
       <div className="border-b border-orange-200 bg-white sticky top-0 z-10">
-      <div className="flex items-center justify-between px-4 py-3 max-w-2xl mx-auto">
+      <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2.5">
           <div className="h-8 w-8 rounded-xl bg-primary flex items-center justify-center shadow-sm">
             <UtensilsCrossed className="h-4 w-4 text-white" />
@@ -316,7 +317,7 @@ const ChatPage = () => {
       {/* History panel */}
       {showHistory && (
         <div className="border-b border-border bg-card/95 shadow-sm">
-        <div className="max-w-2xl mx-auto px-4 py-3 max-h-56 overflow-y-auto">
+        <div className="px-4 py-3 max-h-56 overflow-y-auto">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Recent conversations</h3>
           {sessions.length === 0 ? (
             <p className="text-xs text-muted-foreground py-2">No conversations yet.</p>
@@ -434,7 +435,7 @@ const ChatPage = () => {
             )}
           </div>
         ) : (
-          <div className="px-4 py-6 space-y-4 max-w-2xl mx-auto">
+          <div className="px-4 py-6 space-y-4">
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} fade-in`}>
                 <div className="flex flex-col gap-2 w-full max-w-[85%]">
@@ -497,7 +498,7 @@ const ChatPage = () => {
 
       {/* Input */}
       <div className="border-t border-border p-4 bg-card/80 backdrop-blur-sm">
-        <div className="flex gap-2 items-end max-w-2xl mx-auto">
+        <div className="flex gap-2 items-end">
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -532,6 +533,7 @@ const ChatPage = () => {
           // Optionally show a success toast here
         }}
       />
+    </div>
     </div>
   );
 };
