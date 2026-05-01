@@ -1,86 +1,110 @@
 export const config = { runtime: 'edge' };
 
-/**
- * RAG Retrieval - Query Supabase for community recommendations
- */
-async function getCommunitRecommendations(userMessage: string): Promise<string> {
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// Keywords to extract from user messages for RAG matching
+const CUISINE_KEYWORDS = [
+  'seafood', 'fish', 'vegetarian', 'vegan', 'chinese', 'north indian', 'south indian',
+  'spicy', 'healthy', 'mangalorean', 'udupi', 'biryani', 'chicken', 'mutton',
+  'prawn', 'crab', 'thali', 'dosa', 'idli', 'roti', 'rice', 'noodles', 'pizza',
+  'burger', 'sandwich', 'ice cream', 'dessert', 'sweet', 'snack', 'breakfast',
+  'lunch', 'dinner', 'coffee', 'cafe', 'juice', 'bakery',
+];
+const LOCATION_KEYWORDS = [
+  'hampankatta', 'bunder', 'kadri', 'bejai', 'kankanady', 'falnir', 'bendoor',
+  'lalbagh', 'pandeshwar', 'jeppu', 'surathkal', 'deralakatte', 'bikarnakatte',
+  'attavar', 'valencia', 'kuloor', 'bondel', 'kottara',
+];
+const MOOD_KEYWORDS = [
+  'date', 'romantic', 'family', 'friends', 'solo', 'budget', 'cheap', 'affordable',
+  'expensive', 'fancy', 'casual', 'quick', 'late night', 'outdoor', 'cozy',
+];
+
+async function dbGet<T = any>(path: string): Promise<T[] | null> {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return null;
   try {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.warn('Supabase credentials not configured for RAG');
-      return '';
-    }
-
-    // Extract simple cuisine/mood keywords from message
-    const lowerMsg = userMessage.toLowerCase();
-    const cuisineKeywords = [
-      'seafood', 'fish', 'vegetarian', 'vegan', 'chinese', 'north indian',
-      'spicy', 'healthy', 'mangalorean', 'casual', 'date'
-    ];
-
-    const matchedKeywords = cuisineKeywords
-      .filter(kw => lowerMsg.includes(kw))
-      .slice(0, 3);
-
-    // Query Supabase REST API for matching recommendations
-    const query = new URLSearchParams({
-      select: 'restaurant_name,cuisine_type,price_range,location,notes,rating,tags,helpful_count',
-      order: 'helpful_count.desc,rating.desc,created_at.desc',
-      limit: '5'
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+      },
     });
-
-    // Add tag filter if keywords found
-    if (matchedKeywords.length > 0) {
-      query.append('tags', `cs.{"${matchedKeywords[0]}"}`);
+    if (!res.ok) {
+      console.warn('RAG db query failed:', res.status, path);
+      return null;
     }
-
-    const response = await fetch(
-      `${supabaseUrl}/rest/v1/community_recommendations?${query.toString()}`,
-      {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    if (!response.ok) {
-      console.warn('RAG query failed:', response.status);
-      return '';
-    }
-
-    const recommendations = await response.json() as Array<{
-      restaurant_name: string;
-      cuisine_type?: string;
-      location?: string;
-      notes?: string;
-      rating?: number;
-      helpful_count?: number;
-    }>;
-
-    if (!recommendations.length) {
-      return '';
-    }
-
-    // Format recommendations as context
-    const formattedRecs = recommendations
-      .map(rec => {
-        const parts = [rec.restaurant_name];
-        if (rec.cuisine_type) parts.push(rec.cuisine_type);
-        if (rec.location) parts.push(`Loc: ${rec.location}`);
-        const rating = rec.rating ? `★${rec.rating}` : '';
-        return `• ${parts.join(', ')} ${rating}`.trim();
-      })
-      .join('\n');
-
-    return `\n\n📍 Community Recommendations:\n${formattedRecs}`;
+    return res.json();
   } catch (err) {
-    console.error('RAG retrieval error:', err);
+    console.error('RAG db error:', err);
+    return null;
+  }
+}
+
+async function getRagContext(userMessage: string): Promise<string> {
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    console.warn('RAG: Supabase credentials not set');
     return '';
   }
+
+  const lower = userMessage.toLowerCase();
+
+  const matchedCuisine = CUISINE_KEYWORDS.filter(kw => lower.includes(kw));
+  const matchedLocation = LOCATION_KEYWORDS.filter(kw => lower.includes(kw));
+  const matchedMood = MOOD_KEYWORDS.filter(kw => lower.includes(kw));
+  const allMatched = [...matchedCuisine, ...matchedLocation, ...matchedMood];
+  const primaryKeyword = allMatched[0] || '';
+
+  const contextParts: string[] = [];
+
+  // ── 1. Community Recommendations ─────────────────────────────────────────
+  // Top-rated spots saved by users, filtered by keyword tag if available
+  let recPath = `community_recommendations?select=restaurant_name,cuisine_type,location,notes,rating&order=rating.desc,created_at.desc&limit=4`;
+  if (primaryKeyword) {
+    recPath += `&or=(restaurant_name.ilike.*${encodeURIComponent(primaryKeyword)}*,notes.ilike.*${encodeURIComponent(primaryKeyword)}*)`;
+  }
+  const recs = await dbGet(recPath);
+  if (recs?.length) {
+    const lines = recs.map(r =>
+      `• ${r.restaurant_name}${r.cuisine_type ? ` (${r.cuisine_type})` : ''}${r.location ? ` — ${r.location}` : ''}${r.rating ? ` ★${r.rating}` : ''}${r.notes ? ` · "${r.notes}"` : ''}`
+    ).join('\n');
+    contextParts.push(`📍 Community Picks:\n${lines}`);
+  }
+
+  // ── 2. Approved Blog Posts ────────────────────────────────────────────────
+  // Real food stories written by users — surface relevant ones by keyword
+  if (allMatched.length > 0) {
+    const blogKeyword = encodeURIComponent(primaryKeyword);
+    const blogPath = `blog_posts?select=title,content,restaurant_name,author_name&status=eq.approved&or=(title.ilike.*${blogKeyword}*,content.ilike.*${blogKeyword}*,restaurant_name.ilike.*${blogKeyword}*)&order=created_at.desc&limit=2`;
+    const blogs = await dbGet(blogPath);
+    if (blogs?.length) {
+      const lines = blogs.map(b => {
+        const excerpt = (b.content as string).replace(/\n/g, ' ').slice(0, 200) + '…';
+        return `• "${b.title}"${b.restaurant_name ? ` (${b.restaurant_name})` : ''} by ${b.author_name}: ${excerpt}`;
+      }).join('\n');
+      contextParts.push(`📝 Food Stories from the Community:\n${lines}`);
+    }
+  }
+
+  // ── 3. User Feedback & Ratings ────────────────────────────────────────────
+  // Actual user reviews from past chat sessions — prefer comments with 4–5 stars
+  let feedbackPath = `chat_feedback?select=place_name,rating,comment&rating=gte.4&order=rating.desc,created_at.desc&limit=4`;
+  if (primaryKeyword) {
+    feedbackPath = `chat_feedback?select=place_name,rating,comment&rating=gte.4&place_name=ilike.*${encodeURIComponent(primaryKeyword)}*&order=rating.desc&limit=4`;
+  }
+  const feedback = await dbGet(feedbackPath);
+  const feedbackWithComments = (feedback || []).filter((f: any) => f.comment);
+  if (feedbackWithComments.length > 0) {
+    const lines = feedbackWithComments.map((f: any) =>
+      `• ${f.place_name} ★${f.rating} — "${f.comment}"`
+    ).join('\n');
+    contextParts.push(`💬 Real User Reviews:\n${lines}`);
+  }
+
+  if (contextParts.length === 0) return '';
+
+  return `\n\n━━━ Live Community Data ━━━\n${contextParts.join('\n\n')}\n━━━ End Community Data ━━━\n\nUse the above real community data to enhance your recommendations. Prioritise places and dishes mentioned there — they are real, recent, user-verified picks from Mangalore locals.`;
 }
 
 const SYSTEM_PROMPT = `You are "Wasp MLR" — a warm, food-obsessed advisor for Mangalore, Karnataka, India.
@@ -107,10 +131,11 @@ Rules:
 5. Be warm, enthusiastic, and use local flavor. Make the user hungry!
 6. Ask follow-up questions about mood, company, timing, or cravings to give better suggestions.
 7. Keep responses concise. Use bullet points for multiple suggestions.
-8. IMPORTANT: When you recommend specific restaurants/places, format each restaurant name as a Google Maps link using this markdown format:
+8. When Live Community Data is provided above, ALWAYS incorporate it — mention those places by name and reference user ratings or blog insights naturally in your response.
+9. IMPORTANT: When you recommend specific restaurants/places, format each restaurant name as a Google Maps link using this markdown format:
    [Restaurant Name](https://www.google.com/maps/search/?q=Restaurant+Name+Mangalore)
    Replace spaces in the URL with + signs. Example: [Pabbas](https://www.google.com/maps/search/?q=Pabbas+Mangalore)
-9. IMPORTANT: Always end your response with a line in this exact format:
+10. IMPORTANT: Always end your response with a line in this exact format:
    [PLACES: Place Name 1, Place Name 2, Place Name 3]
    Only include actual restaurant/cafe/establishment names, NOT dish names. This line will be hidden from the user.
 
@@ -154,8 +179,8 @@ export default async function handler(req: Request) {
       .reverse()
       .find((m: any) => m.role === 'user')?.content || '';
 
-    // Retrieve relevant community recommendations
-    const ragContext = await getCommunitRecommendations(lastUserMessage);
+    // Retrieve context from all community data sources in parallel
+    const ragContext = await getRagContext(lastUserMessage);
     const enhancedSystemPrompt = SYSTEM_PROMPT + ragContext;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
