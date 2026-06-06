@@ -87,7 +87,7 @@ export default function SaveRecommendationModal({
       const { data: { user } } = await supabase.auth.getUser();
       const deviceId = await getDeviceId();
 
-      const { error: insertError } = await supabase
+      const { data, error: insertError } = await supabase
         .from('community_recommendations')
         .insert([
           {
@@ -102,12 +102,22 @@ export default function SaveRecommendationModal({
             rating,
             tags: selectedTags.length > 0 ? selectedTags : null
           }
-        ]);
+        ])
+        .select('id');
 
       if (insertError) {
         setError('Failed to save recommendation. Please try again.');
         console.error('Supabase error:', insertError);
         return;
+      }
+
+      // Fire-and-forget: generate embedding for semantic search
+      if (data?.[0]?.id) {
+        fetch('/api/embed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'recommendation', id: data[0].id }),
+        }).catch(() => { /* non-critical */ });
       }
 
       // Success
