@@ -127,7 +127,7 @@ export default async function handler(req: Request) {
     }
 
     const table = type === 'recommendation' ? 'community_recommendations' : 'food_blogs';
-    const ok = await dbPatch(table, id, { embedding: JSON.stringify(embedding) });
+    const ok = await dbPatch(table, id, { embedding: embedding });
 
     if (!ok) {
       return new Response(JSON.stringify({ error: 'Failed to save embedding' }), { status: 500 });

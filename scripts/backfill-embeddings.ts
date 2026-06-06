@@ -49,7 +49,7 @@ async function updateEmbedding(table: string, id: string, embedding: number[]) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
     method: 'PATCH',
     headers: { ...headers, Prefer: 'return=minimal' },
-    body: JSON.stringify({ embedding: JSON.stringify(embedding) }),
+    body: JSON.stringify({ embedding: embedding }),
   });
   if (!res.ok) throw new Error(`Update error: ${res.status} ${await res.text()}`);
 }
@@ -102,21 +102,6 @@ async function main() {
         r.price_range,
       ].filter(Boolean).join('. ');
     }, 'community_recommendations');
-  }
-
-  // ── food_blogs ─────────────────────────────────────────────────────────────
-  console.log('\n── food_blogs ──');
-  const blogs = await fetchAll(
-    'food_blogs',
-    'id,title,body,restaurant_name',
-    'embedding=is.null&status=eq.approved'
-  );
-  console.log(`Found ${blogs.length} approved blogs without embeddings`);
-
-  if (blogs.length > 0) {
-    await processInBatches(blogs, (b) => {
-      return [b.title, b.restaurant_name, b.body?.slice(0, 500)].filter(Boolean).join('. ');
-    }, 'food_blogs');
   }
 
   console.log('\nBackfill complete.');
