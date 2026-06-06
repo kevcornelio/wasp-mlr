@@ -32,7 +32,7 @@ export default function BlogEditorPage() {
 
     setSubmitting(true);
     try {
-      const { error: insertError } = await supabase
+      const { data, error: insertError } = await supabase
         .from('blog_posts')
         .insert([{
           user_id: user.id,
@@ -42,12 +42,22 @@ export default function BlogEditorPage() {
           content: body.trim(),
           restaurant_name: restaurantName.trim() || null,
           status: 'pending',
-        }]);
+        }])
+        .select('id');
 
       if (insertError) {
         setError(`Error: ${insertError.message} (code: ${insertError.code})`);
         console.error(insertError);
         return;
+      }
+
+      // Fire-and-forget: generate embedding (only surfaces in chat once approved)
+      if (data?.[0]?.id) {
+        fetch('/api/embed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'blog', id: data[0].id }),
+        }).catch(() => { /* non-critical */ });
       }
 
       setSubmitted(true);

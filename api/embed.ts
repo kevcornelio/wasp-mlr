@@ -126,15 +126,15 @@ export default async function handler(req: Request) {
     } else if (type === 'blog') {
       const blog = await dbGet<{
         title: string;
-        body: string;
+        content: string;
         restaurant_name?: string;
         author_name?: string;
-      }>('food_blogs', id);
+      }>('blog_posts', id);
 
       if (!blog) return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
 
-      // Use title + first 500 chars of body for embedding
-      text = [blog.title, blog.restaurant_name, blog.body.slice(0, 500)].filter(Boolean).join('. ');
+      // Use title + restaurant + first 1000 chars of content for embedding
+      text = [blog.title, blog.restaurant_name, blog.content?.slice(0, 1000)].filter(Boolean).join('. ');
     }
 
     if (!text) return new Response(JSON.stringify({ error: 'No text to embed' }), { status: 400 });
@@ -147,7 +147,7 @@ export default async function handler(req: Request) {
     const table =
       type === 'spot' ? 'user_food_spots'
       : type === 'recommendation' ? 'community_recommendations'
-      : 'food_blogs';
+      : 'blog_posts';
     const ok = await dbPatch(table, id, { embedding: embedding });
 
     if (!ok) {

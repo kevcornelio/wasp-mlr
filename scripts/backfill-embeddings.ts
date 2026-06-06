@@ -124,6 +124,21 @@ async function main() {
     }, 'community_recommendations');
   }
 
+  // ── blog_posts ──────────────────────────────────────────────────────────────
+  console.log('\n── blog_posts ──');
+  const blogs = await fetchAll(
+    'blog_posts',
+    'id,title,content,restaurant_name',
+    'embedding=is.null'
+  );
+  console.log(`Found ${blogs.length} without embeddings`);
+
+  if (blogs.length > 0) {
+    await processInBatches(blogs, (b) => {
+      return [b.title, b.restaurant_name, b.content?.slice(0, 1000)].filter(Boolean).join('. ');
+    }, 'blog_posts');
+  }
+
   console.log('\nBackfill complete.');
 }
 
