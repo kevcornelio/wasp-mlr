@@ -263,19 +263,22 @@ export default async function handler(req: Request) {
   }
 
   try {
+    const reqUrl = new URL(req.url);
+    const debugQ = reqUrl.searchParams.get('debug');
+
+    // Debug (GET): /api/chat?debug=<query> returns the built RAG context as JSON
+    if (req.method === 'GET' && debugQ) {
+      const ragContext = await getRagContext([{ role: 'user', content: debugQ }]);
+      return new Response(JSON.stringify({ query: debugQ, ragContext, length: ragContext.length }, null, 2), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const { messages } = await req.json();
     const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
     if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is not configured');
 
     const ragContext = await getRagContext(messages);
-
-    // Debug: ?debug=1 returns the built RAG context instead of streaming a reply
-    const isDebug = new URL(req.url).searchParams.get('debug') === '1';
-    if (isDebug) {
-      return new Response(JSON.stringify({ ragContext, ragContextLength: ragContext.length }, null, 2), {
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
 
     const enhancedSystemPrompt = SYSTEM_PROMPT + ragContext;
 
