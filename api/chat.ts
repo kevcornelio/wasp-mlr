@@ -98,7 +98,7 @@ async function getRagContext(messages: Array<{ role: string; content: string }>)
       similarity: number;
     }>('match_food_spots', {
       query_embedding: embedding,
-      match_threshold: 0.4,
+      match_threshold: 0.25,
       match_count: 8,
     });
 
@@ -121,7 +121,7 @@ async function getRagContext(messages: Array<{ role: string; content: string }>)
       similarity: number;
     }>('match_recommendations', {
       query_embedding: embedding,
-      match_threshold: 0.45,
+      match_threshold: 0.3,
       match_count: 4,
     });
 
