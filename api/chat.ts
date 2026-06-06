@@ -2,24 +2,34 @@ export const config = { runtime: 'edge' };
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const VOYAGE_API_KEY = process.env.VOYAGE_API_KEY;
 
-// Keywords to extract from user messages for RAG matching
-const CUISINE_KEYWORDS = [
-  'seafood', 'fish', 'vegetarian', 'vegan', 'chinese', 'north indian', 'south indian',
-  'spicy', 'healthy', 'mangalorean', 'udupi', 'biryani', 'chicken', 'mutton',
-  'prawn', 'crab', 'thali', 'dosa', 'idli', 'roti', 'rice', 'noodles', 'pizza',
-  'burger', 'sandwich', 'ice cream', 'dessert', 'sweet', 'snack', 'breakfast',
-  'lunch', 'dinner', 'coffee', 'cafe', 'juice', 'bakery',
-];
-const LOCATION_KEYWORDS = [
-  'hampankatta', 'bunder', 'kadri', 'bejai', 'kankanady', 'falnir', 'bendoor',
-  'lalbagh', 'pandeshwar', 'jeppu', 'surathkal', 'deralakatte', 'bikarnakatte',
-  'attavar', 'valencia', 'kuloor', 'bondel', 'kottara',
-];
-const MOOD_KEYWORDS = [
-  'date', 'romantic', 'family', 'friends', 'solo', 'budget', 'cheap', 'affordable',
-  'expensive', 'fancy', 'casual', 'quick', 'late night', 'outdoor', 'cozy',
-];
+// ── Voyage AI embedding ──────────────────────────────────────────────────────
+
+async function getQueryEmbedding(text: string): Promise<number[] | null> {
+  if (!VOYAGE_API_KEY) return null;
+  try {
+    const res = await fetch('https://api.voyageai.com/v1/embeddings', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${VOYAGE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'voyage-3',
+        input: [text],
+        input_type: 'query',
+      }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.data[0].embedding;
+  } catch {
+    return null;
+  }
+}
+
+// ── Supabase helpers ─────────────────────────────────────────────────────────
 
 async function dbGet<T = any>(path: string): Promise<T[] | null> {
   if (!SUPABASE_URL || !SUPABASE_KEY) return null;
@@ -31,72 +41,111 @@ async function dbGet<T = any>(path: string): Promise<T[] | null> {
         'Content-Type': 'application/json',
       },
     });
-    if (!res.ok) {
-      console.warn('RAG db query failed:', res.status, path);
-      return null;
-    }
+    if (!res.ok) return null;
     return res.json();
-  } catch (err) {
-    console.error('RAG db error:', err);
+  } catch {
     return null;
   }
 }
 
-async function getRagContext(userMessage: string): Promise<string> {
-  if (!SUPABASE_URL || !SUPABASE_KEY) {
-    console.warn('RAG: Supabase credentials not set');
-    return '';
+async function rpc<T = any>(fnName: string, params: Record<string, unknown>): Promise<T[] | null> {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return null;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fnName}`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
   }
+}
 
-  const lower = userMessage.toLowerCase();
+// ── RAG context builder ──────────────────────────────────────────────────────
 
-  const matchedCuisine = CUISINE_KEYWORDS.filter(kw => lower.includes(kw));
-  const matchedLocation = LOCATION_KEYWORDS.filter(kw => lower.includes(kw));
-  const matchedMood = MOOD_KEYWORDS.filter(kw => lower.includes(kw));
-  const allMatched = [...matchedCuisine, ...matchedLocation, ...matchedMood];
-  const primaryKeyword = allMatched[0] || '';
+async function getRagContext(messages: Array<{ role: string; content: string }>): Promise<string> {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return '';
+
+  // Build query text from last 3 user turns for richer context
+  const queryText = messages
+    .filter(m => m.role === 'user')
+    .slice(-3)
+    .map(m => (typeof m.content === 'string' ? m.content : ''))
+    .join(' ')
+    .trim();
+
+  if (!queryText) return '';
 
   const contextParts: string[] = [];
 
-  // ── 1. Community Recommendations ─────────────────────────────────────────
-  // Top-rated spots saved by users, filtered by keyword tag if available
-  let recPath = `community_recommendations?select=restaurant_name,cuisine_type,location,notes,rating&order=rating.desc,created_at.desc&limit=4`;
-  if (primaryKeyword) {
-    recPath += `&or=(restaurant_name.ilike.*${encodeURIComponent(primaryKeyword)}*,notes.ilike.*${encodeURIComponent(primaryKeyword)}*)`;
-  }
-  const recs = await dbGet(recPath);
-  if (recs?.length) {
-    const lines = recs.map(r =>
-      `• ${r.restaurant_name}${r.cuisine_type ? ` (${r.cuisine_type})` : ''}${r.location ? ` — ${r.location}` : ''}${r.rating ? ` ★${r.rating}` : ''}${r.notes ? ` · "${r.notes}"` : ''}`
-    ).join('\n');
-    contextParts.push(`📍 Community Picks:\n${lines}`);
+  // ── 1. Semantic search via pgvector (preferred) ─────────────────────────────
+  const embedding = await getQueryEmbedding(queryText);
+
+  if (embedding) {
+    // Community recommendations — semantic similarity
+    const semRecs = await rpc<{
+      restaurant_name: string;
+      cuisine_type: string | null;
+      location: string | null;
+      notes: string | null;
+      rating: number;
+      tags: string[] | null;
+      helpful_count: number;
+      similarity: number;
+    }>('match_recommendations', {
+      query_embedding: embedding,
+      match_threshold: 0.45,
+      match_count: 6,
+    });
+
+    if (semRecs?.length) {
+      const lines = semRecs.map(r =>
+        `• ${r.restaurant_name}${r.cuisine_type ? ` (${r.cuisine_type})` : ''}${r.location ? ` — ${r.location}` : ''}${r.rating ? ` ★${r.rating}` : ''}${r.notes ? ` · "${r.notes}"` : ''}${r.tags?.length ? ` [${r.tags.join(', ')}]` : ''}`
+      ).join('\n');
+      contextParts.push(`📍 Community Picks:\n${lines}`);
+    }
+
   }
 
-  // ── 2. Approved Blog Posts ────────────────────────────────────────────────
-  // Real food stories written by users — surface relevant ones by keyword
-  if (allMatched.length > 0) {
-    const blogKeyword = encodeURIComponent(primaryKeyword);
-    const blogPath = `blog_posts?select=title,content,restaurant_name,author_name&status=eq.approved&or=(title.ilike.*${blogKeyword}*,content.ilike.*${blogKeyword}*,restaurant_name.ilike.*${blogKeyword}*)&order=created_at.desc&limit=2`;
-    const blogs = await dbGet(blogPath);
-    if (blogs?.length) {
-      const lines = blogs.map(b => {
-        const excerpt = (b.content as string).replace(/\n/g, ' ').slice(0, 200) + '…';
-        return `• "${b.title}"${b.restaurant_name ? ` (${b.restaurant_name})` : ''} by ${b.author_name}: ${excerpt}`;
-      }).join('\n');
-      contextParts.push(`📝 Food Stories from the Community:\n${lines}`);
+  // ── 2. Fallback: keyword search if no embeddings available yet ────────────
+  if (contextParts.length === 0) {
+    const lower = queryText.toLowerCase();
+    const KEYWORDS = [
+      'seafood', 'fish', 'vegetarian', 'vegan', 'chinese', 'north indian', 'south indian',
+      'spicy', 'healthy', 'mangalorean', 'udupi', 'biryani', 'chicken', 'mutton',
+      'prawn', 'crab', 'thali', 'dosa', 'idli', 'dessert', 'coffee', 'cafe',
+      'hampankatta', 'bunder', 'kadri', 'bejai', 'kankanady', 'falnir', 'bendoor',
+      'lalbagh', 'pandeshwar', 'jeppu', 'deralakatte', 'surathkal',
+      'date', 'romantic', 'family', 'budget', 'casual', 'late night',
+    ];
+    const matched = KEYWORDS.filter(kw => lower.includes(kw));
+    const kw = matched[0] || '';
+
+    let recPath = `community_recommendations?select=restaurant_name,cuisine_type,location,notes,rating,tags&order=helpful_count.desc,rating.desc&limit=5`;
+    if (kw) {
+      recPath += `&or=(restaurant_name.ilike.*${encodeURIComponent(kw)}*,notes.ilike.*${encodeURIComponent(kw)}*,cuisine_type.ilike.*${encodeURIComponent(kw)}*)`;
+    }
+    const recs = await dbGet(recPath);
+    if (recs?.length) {
+      const lines = recs.map((r: any) =>
+        `• ${r.restaurant_name}${r.cuisine_type ? ` (${r.cuisine_type})` : ''}${r.location ? ` — ${r.location}` : ''}${r.rating ? ` ★${r.rating}` : ''}${r.notes ? ` · "${r.notes}"` : ''}`
+      ).join('\n');
+      contextParts.push(`📍 Community Picks:\n${lines}`);
     }
   }
 
-  // ── 3. User Feedback & Ratings ────────────────────────────────────────────
-  // Actual user reviews from past chat sessions — prefer comments with 4–5 stars
-  let feedbackPath = `chat_feedback?select=place_name,rating,comment&rating=gte.4&order=rating.desc,created_at.desc&limit=4`;
-  if (primaryKeyword) {
-    feedbackPath = `chat_feedback?select=place_name,rating,comment&rating=gte.4&place_name=ilike.*${encodeURIComponent(primaryKeyword)}*&order=rating.desc&limit=4`;
-  }
-  const feedback = await dbGet(feedbackPath);
-  const feedbackWithComments = (feedback || []).filter((f: any) => f.comment);
-  if (feedbackWithComments.length > 0) {
-    const lines = feedbackWithComments.map((f: any) =>
+  // ── 3. High-rated user feedback (always included) ───────────────────────
+  const feedback = await dbGet(
+    `chat_feedback?select=place_name,rating,comment&rating=gte.4&comment=not.is.null&order=rating.desc,created_at.desc&limit=4`
+  );
+  if (feedback?.length) {
+    const lines = feedback.map((f: any) =>
       `• ${f.place_name} ★${f.rating} — "${f.comment}"`
     ).join('\n');
     contextParts.push(`💬 Real User Reviews:\n${lines}`);
@@ -106,6 +155,8 @@ async function getRagContext(userMessage: string): Promise<string> {
 
   return `\n\n━━━ Live Community Data ━━━\n${contextParts.join('\n\n')}\n━━━ End Community Data ━━━\n\nUse the above real community data to enhance your recommendations. Prioritise places and dishes mentioned there — they are real, recent, user-verified picks from Mangalore locals.`;
 }
+
+// ── System prompt ────────────────────────────────────────────────────────────
 
 const SYSTEM_PROMPT = `You are "Wasp MLR" — a warm, food-obsessed advisor for Mangalore, Karnataka, India.
 
@@ -158,6 +209,8 @@ Well-known spots (non-exhaustive):
 
 Always greet warmly and probe for context (mood, who they're with, what they're feeling) to nail the perfect recommendation!`;
 
+// ── Handler ──────────────────────────────────────────────────────────────────
+
 export default async function handler(req: Request) {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -173,14 +226,7 @@ export default async function handler(req: Request) {
     const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
     if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is not configured');
 
-    // Get last user message for RAG retrieval
-    const lastUserMessage = messages
-      .slice()
-      .reverse()
-      .find((m: any) => m.role === 'user')?.content || '';
-
-    // Retrieve context from all community data sources in parallel
-    const ragContext = await getRagContext(lastUserMessage);
+    const ragContext = await getRagContext(messages);
     const enhancedSystemPrompt = SYSTEM_PROMPT + ragContext;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
