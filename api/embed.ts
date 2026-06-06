@@ -75,7 +75,7 @@ export default async function handler(req: Request) {
   }
 
   try {
-    const { type, id } = await req.json() as { type: 'recommendation' | 'blog'; id: string };
+    const { type, id } = await req.json() as { type: 'recommendation' | 'spot' | 'blog'; id: string };
 
     if (!type || !id) {
       return new Response(JSON.stringify({ error: 'Missing type or id' }), { status: 400 });
@@ -83,7 +83,25 @@ export default async function handler(req: Request) {
 
     let text: string | null = null;
 
-    if (type === 'recommendation') {
+    if (type === 'spot') {
+      const spot = await dbGet<{
+        restaurant_name: string;
+        location?: string;
+        dishes?: string[];
+        notes?: string;
+      }>('user_food_spots', id);
+
+      if (!spot) return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+
+      const parts = [
+        spot.restaurant_name,
+        spot.location ? `in ${spot.location}` : null,
+        spot.dishes?.length ? `Dishes: ${spot.dishes.join(', ')}` : null,
+        spot.notes,
+      ].filter(Boolean);
+      text = parts.join('. ');
+
+    } else if (type === 'recommendation') {
       const rec = await dbGet<{
         restaurant_name: string;
         cuisine_type?: string;
@@ -126,7 +144,10 @@ export default async function handler(req: Request) {
       return new Response(JSON.stringify({ error: 'Embedding generation failed' }), { status: 500 });
     }
 
-    const table = type === 'recommendation' ? 'community_recommendations' : 'food_blogs';
+    const table =
+      type === 'spot' ? 'user_food_spots'
+      : type === 'recommendation' ? 'community_recommendations'
+      : 'food_blogs';
     const ok = await dbPatch(table, id, { embedding: embedding });
 
     if (!ok) {

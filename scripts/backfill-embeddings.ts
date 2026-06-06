@@ -82,7 +82,27 @@ async function processInBatches(
 }
 
 async function main() {
-  // ── community_recommendations ───────────────────────────────────────────────
+  // ── user_food_spots (primary user-contributed source) ───────────────────────
+  console.log('\n── user_food_spots ──');
+  const spots = await fetchAll(
+    'user_food_spots',
+    'id,restaurant_name,location,dishes,notes',
+    'embedding=is.null'
+  );
+  console.log(`Found ${spots.length} without embeddings`);
+
+  if (spots.length > 0) {
+    await processInBatches(spots, (s) => {
+      return [
+        s.restaurant_name,
+        s.location ? `in ${s.location}` : null,
+        Array.isArray(s.dishes) && s.dishes.length ? `Dishes: ${s.dishes.join(', ')}` : null,
+        s.notes,
+      ].filter(Boolean).join('. ');
+    }, 'user_food_spots');
+  }
+
+  // ── community_recommendations (secondary source) ────────────────────────────
   console.log('\n── community_recommendations ──');
   const recs = await fetchAll(
     'community_recommendations',

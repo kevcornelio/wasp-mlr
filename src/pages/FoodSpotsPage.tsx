@@ -72,6 +72,14 @@ const FoodSpotsPage = () => {
     if (error) {
       toast.error('Failed to save');
     } else if (data) {
+      // Fire-and-forget: generate embedding for semantic search
+      if ((data as FoodSpot).id) {
+        fetch('/api/embed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'spot', id: (data as FoodSpot).id }),
+        }).catch(() => { /* non-critical */ });
+      }
       setSpots(prev => [data as FoodSpot, ...prev]);
       setName(''); setLocation(''); setDishes(''); setNotes(''); setRating(0);
       setShowForm(false);

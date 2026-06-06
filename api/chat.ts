@@ -88,7 +88,28 @@ async function getRagContext(messages: Array<{ role: string; content: string }>)
   const embedding = await getQueryEmbedding(queryText);
 
   if (embedding) {
-    // Community recommendations — semantic similarity
+    // Community food spots (primary user-contributed source) — semantic similarity
+    const semSpots = await rpc<{
+      restaurant_name: string;
+      location: string | null;
+      dishes: string[] | null;
+      notes: string | null;
+      rating: number;
+      similarity: number;
+    }>('match_food_spots', {
+      query_embedding: embedding,
+      match_threshold: 0.4,
+      match_count: 8,
+    });
+
+    if (semSpots?.length) {
+      const lines = semSpots.map(s =>
+        `• ${s.restaurant_name}${s.location ? ` — ${s.location}` : ''}${s.rating ? ` ★${s.rating}` : ''}${s.dishes?.length ? ` · Try: ${s.dishes.join(', ')}` : ''}${s.notes ? ` · "${s.notes}"` : ''}`
+      ).join('\n');
+      contextParts.push(`📍 Community Food Spots:\n${lines}`);
+    }
+
+    // Community recommendations (secondary source) — semantic similarity
     const semRecs = await rpc<{
       restaurant_name: string;
       cuisine_type: string | null;
@@ -101,7 +122,7 @@ async function getRagContext(messages: Array<{ role: string; content: string }>)
     }>('match_recommendations', {
       query_embedding: embedding,
       match_threshold: 0.45,
-      match_count: 6,
+      match_count: 4,
     });
 
     if (semRecs?.length) {
@@ -110,7 +131,6 @@ async function getRagContext(messages: Array<{ role: string; content: string }>)
       ).join('\n');
       contextParts.push(`📍 Community Picks:\n${lines}`);
     }
-
   }
 
   // ── 2. Fallback: keyword search if no embeddings available yet ────────────
@@ -127,16 +147,16 @@ async function getRagContext(messages: Array<{ role: string; content: string }>)
     const matched = KEYWORDS.filter(kw => lower.includes(kw));
     const kw = matched[0] || '';
 
-    let recPath = `community_recommendations?select=restaurant_name,cuisine_type,location,notes,rating,tags&order=helpful_count.desc,rating.desc&limit=5`;
+    let spotPath = `user_food_spots?select=restaurant_name,location,dishes,notes,rating&order=rating.desc,created_at.desc&limit=6`;
     if (kw) {
-      recPath += `&or=(restaurant_name.ilike.*${encodeURIComponent(kw)}*,notes.ilike.*${encodeURIComponent(kw)}*,cuisine_type.ilike.*${encodeURIComponent(kw)}*)`;
+      spotPath += `&or=(restaurant_name.ilike.*${encodeURIComponent(kw)}*,notes.ilike.*${encodeURIComponent(kw)}*,location.ilike.*${encodeURIComponent(kw)}*)`;
     }
-    const recs = await dbGet(recPath);
-    if (recs?.length) {
-      const lines = recs.map((r: any) =>
-        `• ${r.restaurant_name}${r.cuisine_type ? ` (${r.cuisine_type})` : ''}${r.location ? ` — ${r.location}` : ''}${r.rating ? ` ★${r.rating}` : ''}${r.notes ? ` · "${r.notes}"` : ''}`
+    const spots = await dbGet(spotPath);
+    if (spots?.length) {
+      const lines = spots.map((s: any) =>
+        `• ${s.restaurant_name}${s.location ? ` — ${s.location}` : ''}${s.rating ? ` ★${s.rating}` : ''}${Array.isArray(s.dishes) && s.dishes.length ? ` · Try: ${s.dishes.join(', ')}` : ''}${s.notes ? ` · "${s.notes}"` : ''}`
       ).join('\n');
-      contextParts.push(`📍 Community Picks:\n${lines}`);
+      contextParts.push(`📍 Community Food Spots:\n${lines}`);
     }
   }
 
