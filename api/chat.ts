@@ -223,7 +223,8 @@ Rules:
 5. Be warm, enthusiastic, and use local flavor. Make the user hungry!
 6. Ask follow-up questions about mood, company, timing, or cravings to give better suggestions.
 7. Keep responses concise. Use bullet points for multiple suggestions.
-8. When Live Community Data is provided above, ALWAYS incorporate it — mention those places by name and reference user ratings or blog insights naturally in your response.
+8. When Live Community Data is provided above, ALWAYS incorporate it — mention those places by name and reference user ratings naturally in your response.
+8a. When "📝 Food Stories" are present, you MUST weave in at least one explicitly — cite the author and what they said, e.g. "Kevin Cornelio raves about Cherry Square in his food story…" or "As Dagny Pinto wrote about the seafood spots…". These are real blogs from local foodies; surfacing them makes recommendations feel trusted and personal. Prioritise places mentioned in the Food Stories.
 9. IMPORTANT: When you recommend specific restaurants/places, format each restaurant name as a Google Maps link using this markdown format:
    [Restaurant Name](https://www.google.com/maps/search/?q=Restaurant+Name+Mangalore)
    Replace spaces in the URL with + signs. Example: [Pabbas](https://www.google.com/maps/search/?q=Pabbas+Mangalore)
@@ -263,15 +264,6 @@ export default async function handler(req: Request) {
   }
 
   try {
-    // Debug: /api/chat?debug=<query> returns the built RAG context as JSON
-    const debugQ = new URL(req.url).searchParams.get('debug');
-    if (debugQ) {
-      const ragContext = await getRagContext([{ role: 'user', content: debugQ }]);
-      return new Response(JSON.stringify({ query: debugQ, ragContext, length: ragContext.length }, null, 2), {
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
     const { messages } = await req.json();
     const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
     if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is not configured');
