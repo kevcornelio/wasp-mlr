@@ -263,11 +263,9 @@ export default async function handler(req: Request) {
   }
 
   try {
-    const reqUrl = new URL(req.url);
-    const debugQ = reqUrl.searchParams.get('debug');
-
-    // Debug (GET): /api/chat?debug=<query> returns the built RAG context as JSON
-    if (req.method === 'GET' && debugQ) {
+    // Debug: /api/chat?debug=<query> returns the built RAG context as JSON
+    const debugQ = new URL(req.url).searchParams.get('debug');
+    if (debugQ) {
       const ragContext = await getRagContext([{ role: 'user', content: debugQ }]);
       return new Response(JSON.stringify({ query: debugQ, ragContext, length: ragContext.length }, null, 2), {
         headers: { 'Content-Type': 'application/json' },
