@@ -111,26 +111,6 @@ async function getRagContext(messages: Array<{ role: string; content: string }>)
       contextParts.push(`📍 Community Picks:\n${lines}`);
     }
 
-    // Food blogs — semantic similarity
-    const semBlogs = await rpc<{
-      title: string;
-      body: string;
-      restaurant_name: string | null;
-      author_name: string;
-      similarity: number;
-    }>('match_food_blogs', {
-      query_embedding: embedding,
-      match_threshold: 0.45,
-      match_count: 2,
-    });
-
-    if (semBlogs?.length) {
-      const lines = semBlogs.map(b => {
-        const excerpt = b.body.replace(/\n/g, ' ').slice(0, 200) + '…';
-        return `• "${b.title}"${b.restaurant_name ? ` (${b.restaurant_name})` : ''} by ${b.author_name}: ${excerpt}`;
-      }).join('\n');
-      contextParts.push(`📝 Food Stories:\n${lines}`);
-    }
   }
 
   // ── 2. Fallback: keyword search if no embeddings available yet ────────────
