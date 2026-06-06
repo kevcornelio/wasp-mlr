@@ -268,6 +268,15 @@ export default async function handler(req: Request) {
     if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is not configured');
 
     const ragContext = await getRagContext(messages);
+
+    // Debug: ?debug=1 returns the built RAG context instead of streaming a reply
+    const isDebug = new URL(req.url).searchParams.get('debug') === '1';
+    if (isDebug) {
+      return new Response(JSON.stringify({ ragContext, ragContextLength: ragContext.length }, null, 2), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const enhancedSystemPrompt = SYSTEM_PROMPT + ragContext;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
