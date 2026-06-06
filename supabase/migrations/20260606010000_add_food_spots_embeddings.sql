@@ -23,7 +23,7 @@ RETURNS TABLE (
   location text,
   dishes text[],
   notes text,
-  rating smallint,
+  rating numeric,
   similarity float
 )
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
@@ -36,7 +36,7 @@ BEGIN
     s.location,
     s.dishes,
     s.notes,
-    s.rating,
+    s.rating::numeric,
     (1 - (s.embedding <=> query_embedding))::float AS similarity
   FROM public.user_food_spots s
   WHERE s.embedding IS NOT NULL
