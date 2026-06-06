@@ -49,7 +49,7 @@ async function updateEmbedding(table: string, id: string, embedding: number[]) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
     method: 'PATCH',
     headers: { ...headers, Prefer: 'return=minimal' },
-    body: JSON.stringify({ embedding: JSON.stringify(embedding) }),
+    body: JSON.stringify({ embedding: embedding }),
   });
   if (!res.ok) throw new Error(`Update error: ${res.status} ${await res.text()}`);
 }
