@@ -11,6 +11,7 @@ export default async function handler(req: Request) {
   const out: Record<string, unknown> = {};
   const url = new URL(req.url);
   const query = url.searchParams.get('q') || 'spicy seafood for dinner';
+  const threshold = parseFloat(url.searchParams.get('t') || '0');
 
   // 1. Which env vars are present (booleans only, no secrets leaked)
   out.env = {
@@ -67,7 +68,7 @@ export default async function handler(req: Request) {
       const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/match_food_spots`, {
         method: 'POST',
         headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query_embedding: embedding, match_threshold: 0.4, match_count: 8 }),
+        body: JSON.stringify({ query_embedding: embedding, match_threshold: threshold, match_count: 8 }),
       });
       out.rpcStatus = res.status;
       if (res.ok) {
