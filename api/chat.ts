@@ -141,7 +141,7 @@ async function getRagContext(messages: Array<{ role: string; content: string }>)
       similarity: number;
     }>('match_blog_posts', {
       query_embedding: embedding,
-      match_threshold: 0.25,
+      match_threshold: 0.15,
       match_count: 2,
     });
 
