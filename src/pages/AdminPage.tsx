@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { MessageSquare, Users, Star, TrendingUp, Heart, ArrowLeft, RefreshCw, BookOpen, CheckCircle, XCircle, Clock, Trash2 } from 'lucide-react';
+import { MessageSquare, Users, Star, TrendingUp, Heart, ArrowLeft, RefreshCw, BookOpen, CheckCircle, XCircle, Clock, Trash2, MapPin } from 'lucide-react';
 
 interface PendingBlog {
   id: string;
@@ -12,6 +12,18 @@ interface PendingBlog {
   content: string;
   restaurant_name: string | null;
   created_at: string;
+}
+
+interface FoodSpot {
+  id: string;
+  user_id: string | null;
+  restaurant_name: string;
+  location: string | null;
+  dishes: string[] | null;
+  notes: string | null;
+  rating: number | null;
+  created_at: string;
+  submitted_by: string;
 }
 
 // 🔒 Admin access restricted to this email
@@ -44,8 +56,10 @@ export default function AdminPage() {
   const [pendingBlogs, setPendingBlogs] = useState<PendingBlog[]>([]);
   const [allBlogs, setAllBlogs] = useState<(PendingBlog & { status: string })[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [foodSpots, setFoodSpots] = useState<FoodSpot[]>([]);
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingSpotId, setDeletingSpotId] = useState<string | null>(null);
 
   const isAdmin = user?.email === ADMIN_EMAIL;
 
@@ -143,6 +157,17 @@ export default function AdminPage() {
         .order('created_at', { ascending: false });
       setAllBlogs(allBlogsData || []);
 
+      // Fetch user-submitted food spots
+      const { data: spotsData } = await supabase
+        .from('user_food_spots')
+        .select('id, user_id, restaurant_name, location, dishes, notes, rating, created_at')
+        .order('created_at', { ascending: false });
+      const spotsWithSubmitter: FoodSpot[] = (spotsData || []).map(s => ({
+        ...s,
+        submitted_by: s.user_id ? (profileEmailMap.get(s.user_id) || 'Unknown user') : 'Anonymous',
+      }));
+      setFoodSpots(spotsWithSubmitter);
+
       setLastRefreshed(new Date());
     } catch (err) {
       console.error('Error fetching admin stats:', err);
@@ -165,6 +190,14 @@ export default function AdminPage() {
     setPendingBlogs(prev => prev.filter(b => b.id !== blogId));
     setAllBlogs(prev => prev.filter(b => b.id !== blogId));
     setDeletingId(null);
+  };
+
+  const handleSpotDelete = async (spotId: string) => {
+    if (!confirm('Delete this food spot permanently?')) return;
+    setDeletingSpotId(spotId);
+    await supabase.from('user_food_spots').delete().eq('id', spotId);
+    setFoodSpots(prev => prev.filter(s => s.id !== spotId));
+    setDeletingSpotId(null);
   };
 
   useEffect(() => {
@@ -470,6 +503,54 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
+        {/* User Food Spots */}
+        <div className="bg-card border border-border rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-4">
+            <MapPin className="h-4 w-4 text-emerald-500" />
+            <h2 className="font-semibold text-sm text-foreground">User Food Spots</h2>
+            <span className="text-xs text-muted-foreground ml-1">({foodSpots.length})</span>
+          </div>
+          {foodSpots.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">No food spots submitted yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {foodSpots.map(spot => (
+                <div key={spot.id} className="flex items-start justify-between gap-3 py-2 border-b border-border last:border-0">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-sm text-foreground truncate max-w-[280px]">{spot.restaurant_name}</span>
+                      {spot.location && (
+                        <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                          📍 {spot.location}
+                        </span>
+                      )}
+                      {spot.rating && (
+                        <span className="text-xs text-amber-500 font-medium">{spot.rating} ★</span>
+                      )}
+                    </div>
+                    {spot.dishes && spot.dishes.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">Dishes: {spot.dishes.join(', ')}</p>
+                    )}
+                    {spot.notes && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{spot.notes}</p>
+                    )}
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      by {spot.submitted_by} · {new Date(spot.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleSpotDelete(spot.id)}
+                    disabled={deletingSpotId === spot.id}
+                    className="shrink-0 p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Footer note */}
         <p className="text-xs text-muted-foreground text-center pb-4">
