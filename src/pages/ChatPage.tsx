@@ -43,6 +43,7 @@ const ChatPage = () => {
     restaurant_name: string | null;
     created_at: string;
   }[]>([]);
+  const [latestPhotos, setLatestPhotos] = useState<{ id: string; photo_url: string; caption: string | null }[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Use authenticated client for logged-in users, anon client otherwise
@@ -76,6 +77,19 @@ const ChatPage = () => {
       if (data) setLatestBlogs(data);
     };
     loadBlogs();
+  }, []);
+
+  // Load latest food photos for home-page preview
+  useEffect(() => {
+    const loadPhotos = async () => {
+      const { data } = await supabase
+        .from('food_photos')
+        .select('id, photo_url, caption')
+        .order('created_at', { ascending: false })
+        .limit(6);
+      if (data) setLatestPhotos(data);
+    };
+    loadPhotos();
   }, []);
 
   const loadSession = async (sessionId: string) => {
@@ -517,6 +531,43 @@ const ChatPage = () => {
                           </span>
                           <span className="text-[10px] text-muted-foreground">by {blog.author_name}</span>
                         </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {latestPhotos.length > 0 && (
+                <div className="w-full max-w-lg space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Camera className="h-4 w-4 text-primary" />
+                      <h2 className="text-sm font-semibold text-foreground tracking-tight">Food photos</h2>
+                    </div>
+                    <button
+                      onClick={() => navigate('/photos')}
+                      className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5"
+                    >
+                      View all <ChevronRight className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {latestPhotos.map(photo => (
+                      <button
+                        key={photo.id}
+                        onClick={() => navigate('/photos')}
+                        className="group relative aspect-square rounded-xl overflow-hidden border border-border hover:border-primary/40 hover:shadow-md transition-all"
+                      >
+                        <img
+                          src={photo.photo_url}
+                          alt={photo.caption ?? 'Food photo'}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        {photo.caption && (
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-1.5 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <p className="text-[9px] text-white truncate">{photo.caption}</p>
+                          </div>
+                        )}
                       </button>
                     ))}
                   </div>
