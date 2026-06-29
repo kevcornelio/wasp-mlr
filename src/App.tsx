@@ -12,6 +12,7 @@ import AdminPage from "@/pages/AdminPage";
 import BlogListPage from "@/pages/BlogListPage";
 import BlogPostPage from "@/pages/BlogPostPage";
 import BlogEditorPage from "@/pages/BlogEditorPage";
+import PhotosPage from "@/pages/PhotosPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/blog" element={<BlogListPage />} />
             <Route path="/blog/new" element={<BlogEditorPage />} />
             <Route path="/blog/:id" element={<BlogPostPage />} />
+            <Route path="/photos" element={<PhotosPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

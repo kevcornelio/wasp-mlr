@@ -1,11 +1,12 @@
 import { useApp } from '@/context/AppContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { UtensilsCrossed, LogOut, Menu, X } from 'lucide-react';
+import { UtensilsCrossed, LogOut, Menu, X, Camera } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { label: 'Chat', path: '/chat', icon: UtensilsCrossed },
+  { label: 'Food Photos', path: '/photos', icon: Camera },
 ];
 
 export const AppSidebar = () => {

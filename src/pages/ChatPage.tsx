@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Send, UtensilsCrossed, MapPin, Loader2, History, Plus, LogOut, Trash2, Settings, Utensils, Heart, BookOpen, ChevronRight, Calendar } from 'lucide-react';
+import { Send, UtensilsCrossed, MapPin, Loader2, History, Plus, LogOut, Trash2, Settings, Utensils, Heart, BookOpen, ChevronRight, Calendar, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
@@ -279,7 +279,7 @@ const ChatPage = () => {
             <UtensilsCrossed className="h-4 w-4 text-white" />
           </div>
           <div>
-            <span className="font-semibold text-sm text-foreground tracking-tight">Wasp MLR</span>
+            <span className="font-semibold text-sm text-foreground tracking-tight">wassup mlr</span>
             {user && firstName && (
               <span className="text-xs text-muted-foreground ml-1.5">· Hey {firstName}!</span>
             )}
@@ -300,6 +300,9 @@ const ChatPage = () => {
           </Button>
           <Button variant="ghost" size="sm" onClick={() => navigate('/blog')} className="h-8 w-8 p-0 rounded-lg">
             <BookOpen className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/photos')} className="h-8 w-8 p-0 rounded-lg">
+            <Camera className="h-3.5 w-3.5" />
           </Button>
           {user ? (
             <Button variant="ghost" size="sm" onClick={() => { signOut(); }} className="h-8 w-8 p-0 rounded-lg text-muted-foreground">
