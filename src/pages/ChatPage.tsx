@@ -270,73 +270,81 @@ const ChatPage = () => {
 
   const firstName = profile?.full_name?.split(' ')[0] || '';
 
+  const sidebarNav = [
+    { label: 'Chat', icon: UtensilsCrossed, path: '/chat' },
+    { label: 'Food Spots', icon: Utensils, path: '/spots' },
+    { label: 'Food Photos', icon: Camera, path: '/photos' },
+    { label: 'Blog', icon: BookOpen, path: '/blog' },
+    { label: 'Preferences', icon: Settings, path: '/preferences' },
+  ];
+
   return (
-    <div className="flex flex-col h-screen max-w-3xl mx-auto bg-orange-50">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-orange-200 bg-white sticky top-0 z-10">
-        <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-xl bg-primary flex items-center justify-center shadow-sm">
+    <div className="flex h-screen w-full bg-orange-50">
+
+      {/* ── Desktop sidebar ── */}
+      <aside className="hidden md:flex flex-col w-56 shrink-0 bg-white border-r border-orange-200 h-full">
+        {/* Brand */}
+        <div className="flex items-center gap-2.5 px-4 py-4 border-b border-orange-100">
+          <div className="h-8 w-8 rounded-xl bg-primary flex items-center justify-center shadow-sm shrink-0">
             <UtensilsCrossed className="h-4 w-4 text-white" />
           </div>
           <div>
             <span className="font-semibold text-sm text-foreground tracking-tight">wassup mlr</span>
             {user && firstName && (
-              <span className="text-xs text-muted-foreground ml-1.5">· Hey {firstName}!</span>
+              <p className="text-[11px] text-muted-foreground leading-none mt-0.5">Hey {firstName}!</p>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" onClick={startNewChat} className="h-8 text-xs gap-1.5 rounded-lg">
-            <Plus className="h-3.5 w-3.5" /> New
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => setShowHistory(!showHistory)} className={`h-8 text-xs gap-1.5 rounded-lg ${showHistory ? 'bg-accent' : ''}`}>
-            <History className="h-3.5 w-3.5" /> History
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => navigate('/preferences')} className="h-8 w-8 p-0 rounded-lg">
-            <Settings className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => navigate('/spots')} className="h-8 w-8 p-0 rounded-lg">
-            <Utensils className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => navigate('/blog')} className="h-8 w-8 p-0 rounded-lg">
-            <BookOpen className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => navigate('/photos')} className="h-8 w-8 p-0 rounded-lg">
-            <Camera className="h-3.5 w-3.5" />
-          </Button>
-          {user ? (
-            <Button variant="ghost" size="sm" onClick={() => { signOut(); }} className="h-8 w-8 p-0 rounded-lg text-muted-foreground">
-              <LogOut className="h-3.5 w-3.5" />
-            </Button>
-          ) : (
-            <a href="/auth" className="text-xs text-primary font-medium hover:underline px-2">Sign in</a>
-          )}
-        </div>
-      </div>
 
-      {/* History panel */}
-      {showHistory && (
-        <div className="border-b border-border bg-card/95 px-4 py-3 max-h-56 overflow-y-auto shadow-sm">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Recent conversations</h3>
+        {/* Nav links */}
+        <nav className="px-2 py-3 space-y-0.5">
+          {sidebarNav.map(item => (
+            <button
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-foreground hover:bg-orange-50 hover:text-primary"
+            >
+              <item.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="mx-4 border-t border-orange-100 my-1" />
+
+        {/* New chat button */}
+        <div className="px-2 py-2">
+          <button
+            onClick={startNewChat}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-foreground hover:bg-orange-50 hover:text-primary transition-colors"
+          >
+            <Plus className="h-4 w-4 shrink-0 text-muted-foreground" />
+            New chat
+          </button>
+        </div>
+
+        {/* History */}
+        <div className="flex-1 overflow-y-auto px-2 py-1 min-h-0">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-1">Recent</p>
           {sessions.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-2">No conversations yet.</p>
+            <p className="text-xs text-muted-foreground px-3 py-1">No conversations yet.</p>
           ) : (
             <div className="space-y-0.5">
               {sessions.map(s => (
-                <div key={s.id} className="flex items-center justify-between group">
+                <div key={s.id} className="flex items-center group">
                   <button
                     onClick={() => loadSession(s.id)}
-                    className={`flex-1 text-left text-xs px-2.5 py-2 rounded-lg transition-colors truncate ${
+                    className={`flex-1 text-left text-xs px-3 py-2 rounded-lg transition-colors truncate ${
                       activeSessionId === s.id
                         ? 'bg-primary/10 text-primary font-medium'
-                        : 'text-foreground hover:bg-accent'
+                        : 'text-foreground hover:bg-orange-50'
                     }`}
                   >
                     {s.title}
                   </button>
                   <button
                     onClick={() => deleteSession(s.id)}
-                    className="opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-destructive transition-all rounded-md"
+                    className="opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-destructive transition-all rounded-md shrink-0"
                   >
                     <Trash2 className="h-3 w-3" />
                   </button>
@@ -345,180 +353,264 @@ const ChatPage = () => {
             </div>
           )}
         </div>
-      )}
 
-      {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto">
-        {messages.length === 0 ? (
-          <div className="hero-bg flex flex-col items-center justify-center min-h-full text-center px-6 py-16 gap-8">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium">
-              <span>🌶️</span> Mangalore's AI Food Guide
+        {/* Sign in / out */}
+        <div className="px-2 py-3 border-t border-orange-100">
+          {user ? (
+            <button
+              onClick={() => signOut()}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-orange-50 hover:text-destructive transition-colors"
+            >
+              <LogOut className="h-4 w-4 shrink-0" />
+              Sign out
+            </button>
+          ) : (
+            <a
+              href="/auth"
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+            >
+              Sign in
+            </a>
+          )}
+        </div>
+      </aside>
+
+      {/* ── Main chat column ── */}
+      <div className="flex flex-col flex-1 min-w-0 h-full">
+
+        {/* Mobile-only header */}
+        <div className="flex md:hidden items-center justify-between px-4 py-3 border-b border-orange-200 bg-white sticky top-0 z-10">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-xl bg-primary flex items-center justify-center shadow-sm">
+              <UtensilsCrossed className="h-4 w-4 text-white" />
             </div>
+            <span className="font-semibold text-sm text-foreground tracking-tight">wassup mlr</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="sm" onClick={startNewChat} className="h-8 text-xs gap-1.5 rounded-lg">
+              <Plus className="h-3.5 w-3.5" /> New
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowHistory(!showHistory)} className={`h-8 text-xs gap-1.5 rounded-lg ${showHistory ? 'bg-accent' : ''}`}>
+              <History className="h-3.5 w-3.5" /> History
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/spots')} className="h-8 w-8 p-0 rounded-lg">
+              <Utensils className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/photos')} className="h-8 w-8 p-0 rounded-lg">
+              <Camera className="h-3.5 w-3.5" />
+            </Button>
+            {user ? (
+              <Button variant="ghost" size="sm" onClick={() => signOut()} className="h-8 w-8 p-0 rounded-lg text-muted-foreground">
+                <LogOut className="h-3.5 w-3.5" />
+              </Button>
+            ) : (
+              <a href="/auth" className="text-xs text-primary font-medium hover:underline px-2">Sign in</a>
+            )}
+          </div>
+        </div>
 
-            {/* Hero text */}
-            <div className="space-y-3 max-w-lg">
-              <h1 className="text-5xl md:text-6xl text-foreground leading-[1.05] tracking-tight" style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800 }}>
-                {user && firstName
-                  ? <><span className="text-primary">{firstName},</span><br />what's<br />the craving?</>
-                  : <>Find your<br />next <span className="text-primary">favourite</span><br />meal.</>
-                }
-              </h1>
-              <p className="text-muted-foreground text-base leading-relaxed max-w-sm mx-auto">
-                Tell me your mood, who you're with, or what you're craving. I'll find the perfect dish and spot in Mangalore.
-              </p>
-            </div>
-
-            {/* Quick prompts */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
-              {QUICK_PROMPTS.map((prompt) => (
-                <button
-                  key={prompt}
-                  onClick={() => send(prompt)}
-                  className="group flex items-start gap-3 px-4 py-3.5 rounded-2xl border border-border bg-card/80 hover:bg-card hover:border-primary/40 hover:shadow-md text-foreground transition-all text-left"
-                >
-                  <span className="mt-0.5 h-6 w-6 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                    <MapPin className="h-3.5 w-3.5 text-primary" />
-                  </span>
-                  <span className="text-sm leading-snug">{prompt}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* Latest community blogs */}
-            {latestBlogs.length > 0 && (
-              <div className="w-full max-w-lg space-y-3 pt-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="h-4 w-4 text-primary" />
-                    <h2 className="text-sm font-semibold text-foreground tracking-tight">Latest food stories</h2>
-                  </div>
-                  <button
-                    onClick={() => navigate('/blog')}
-                    className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5"
-                  >
-                    View all <ChevronRight className="h-3 w-3" />
-                  </button>
-                </div>
-                <div className="space-y-2.5">
-                  {latestBlogs.map((blog) => (
+        {/* Mobile history dropdown */}
+        {showHistory && (
+          <div className="md:hidden border-b border-border bg-card/95 px-4 py-3 max-h-56 overflow-y-auto shadow-sm">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Recent conversations</h3>
+            {sessions.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-2">No conversations yet.</p>
+            ) : (
+              <div className="space-y-0.5">
+                {sessions.map(s => (
+                  <div key={s.id} className="flex items-center justify-between group">
                     <button
-                      key={blog.id}
-                      onClick={() => navigate(`/blog/${blog.id}`)}
-                      className="group w-full text-left bg-card/80 hover:bg-card border border-border hover:border-primary/40 hover:shadow-md rounded-2xl px-4 py-3 transition-all"
+                      onClick={() => loadSession(s.id)}
+                      className={`flex-1 text-left text-xs px-2.5 py-2 rounded-lg transition-colors truncate ${
+                        activeSessionId === s.id
+                          ? 'bg-primary/10 text-primary font-medium'
+                          : 'text-foreground hover:bg-accent'
+                      }`}
                     >
-                      <h3 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-1">
-                        {blog.title}
-                      </h3>
-                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-2">
-                        {blog.content}
-                      </p>
-                      <div className="flex items-center gap-2 mt-2 flex-wrap">
-                        {blog.restaurant_name && (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-primary font-medium bg-primary/10 px-1.5 py-0.5 rounded-full">
-                            <MapPin className="h-2.5 w-2.5" />
-                            {blog.restaurant_name}
-                          </span>
-                        )}
-                        <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                          <Calendar className="h-2.5 w-2.5" />
-                          {new Date(blog.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">by {blog.author_name}</span>
-                      </div>
+                      {s.title}
                     </button>
-                  ))}
-                </div>
+                    <button
+                      onClick={() => deleteSession(s.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-destructive transition-all rounded-md"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
           </div>
-        ) : (
-          <div className="px-4 py-6 space-y-4">
-            {messages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} fade-in`}>
-                <div className="flex flex-col gap-2 w-full max-w-[85%]">
-                  <div
-                    className={`rounded-2xl px-4 py-3 text-sm shadow-sm ${
-                      msg.role === 'user'
-                        ? 'bg-gradient-to-br from-primary to-orange-500 text-white rounded-br-sm'
-                        : 'bg-card border border-border text-foreground rounded-bl-sm'
-                    }`}
+        )}
+
+        {/* Messages */}
+        <div ref={scrollRef} className="flex-1 overflow-y-auto">
+          {messages.length === 0 ? (
+            <div className="hero-bg flex flex-col items-center justify-center min-h-full text-center px-6 py-16 gap-8">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium">
+                <span>🌶️</span> Mangalore's AI Food Guide
+              </div>
+
+              <div className="space-y-3 max-w-lg">
+                <h1 className="text-5xl md:text-6xl text-foreground leading-[1.05] tracking-tight" style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800 }}>
+                  {user && firstName
+                    ? <><span className="text-primary">{firstName},</span><br />what's<br />the craving?</>
+                    : <>Find your<br />next <span className="text-primary">favourite</span><br />meal.</>
+                  }
+                </h1>
+                <p className="text-muted-foreground text-base leading-relaxed max-w-sm mx-auto">
+                  Tell me your mood, who you're with, or what you're craving. I'll find the perfect dish and spot in Mangalore.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
+                {QUICK_PROMPTS.map((prompt) => (
+                  <button
+                    key={prompt}
+                    onClick={() => send(prompt)}
+                    className="group flex items-start gap-3 px-4 py-3.5 rounded-2xl border border-border bg-card/80 hover:bg-card hover:border-primary/40 hover:shadow-md text-foreground transition-all text-left"
                   >
-                    {msg.role === 'assistant' ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none [&_ul]:mt-1 [&_li]:mt-0.5 [&_p]:mt-1 [&_p:first-child]:mt-0">
-                        <ReactMarkdown components={{
-                          a: ({ href, children }) => (
-                            <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary font-medium underline underline-offset-2 hover:opacity-75 transition-opacity">
-                              {children}
-                            </a>
-                          )
-                        }}>{cleanMessage(msg.content)}</ReactMarkdown>
-                      </div>
-                    ) : (
-                      msg.content
+                    <span className="mt-0.5 h-6 w-6 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                      <MapPin className="h-3.5 w-3.5 text-primary" />
+                    </span>
+                    <span className="text-sm leading-snug">{prompt}</span>
+                  </button>
+                ))}
+              </div>
+
+              {latestBlogs.length > 0 && (
+                <div className="w-full max-w-lg space-y-3 pt-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="h-4 w-4 text-primary" />
+                      <h2 className="text-sm font-semibold text-foreground tracking-tight">Latest food stories</h2>
+                    </div>
+                    <button
+                      onClick={() => navigate('/blog')}
+                      className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5"
+                    >
+                      View all <ChevronRight className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <div className="space-y-2.5">
+                    {latestBlogs.map((blog) => (
+                      <button
+                        key={blog.id}
+                        onClick={() => navigate(`/blog/${blog.id}`)}
+                        className="group w-full text-left bg-card/80 hover:bg-card border border-border hover:border-primary/40 hover:shadow-md rounded-2xl px-4 py-3 transition-all"
+                      >
+                        <h3 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-1">
+                          {blog.title}
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-2">
+                          {blog.content}
+                        </p>
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                          {blog.restaurant_name && (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-primary font-medium bg-primary/10 px-1.5 py-0.5 rounded-full">
+                              <MapPin className="h-2.5 w-2.5" />
+                              {blog.restaurant_name}
+                            </span>
+                          )}
+                          <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                            <Calendar className="h-2.5 w-2.5" />
+                            {new Date(blog.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">by {blog.author_name}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="px-4 py-6 space-y-4 max-w-3xl mx-auto">
+              {messages.map((msg, i) => (
+                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} fade-in`}>
+                  <div className="flex flex-col gap-2 w-full max-w-[80%]">
+                    <div
+                      className={`rounded-2xl px-4 py-3 text-sm shadow-sm ${
+                        msg.role === 'user'
+                          ? 'bg-gradient-to-br from-primary to-orange-500 text-white rounded-br-sm'
+                          : 'bg-card border border-border text-foreground rounded-bl-sm'
+                      }`}
+                    >
+                      {msg.role === 'assistant' ? (
+                        <div className="prose prose-sm dark:prose-invert max-w-none [&_ul]:mt-1 [&_li]:mt-0.5 [&_p]:mt-1 [&_p:first-child]:mt-0">
+                          <ReactMarkdown components={{
+                            a: ({ href, children }) => (
+                              <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary font-medium underline underline-offset-2 hover:opacity-75 transition-opacity">
+                                {children}
+                              </a>
+                            )
+                          }}>{cleanMessage(msg.content)}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        msg.content
+                      )}
+                    </div>
+                    {msg.role === 'assistant' && msg.content.includes('[PLACES:') && (
+                      <button
+                        onClick={() => {
+                          const restaurant = getFirstRestaurantFromMessage(msg.content);
+                          setSelectedRestaurantForSave(restaurant);
+                          setSaveRecommendationOpen(true);
+                        }}
+                        className="self-start flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                      >
+                        <Heart className="h-3.5 w-3.5" />
+                        Save This
+                      </button>
                     )}
                   </div>
-                  {msg.role === 'assistant' && msg.content.includes('[PLACES:') && (
-                    <button
-                      onClick={() => {
-                        const restaurant = getFirstRestaurantFromMessage(msg.content);
-                        setSelectedRestaurantForSave(restaurant);
-                        setSaveRecommendationOpen(true);
-                      }}
-                      className="self-start flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                    >
-                      <Heart className="h-3.5 w-3.5" />
-                      Save This
-                    </button>
-                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
+            <div className="flex justify-start px-4 max-w-3xl mx-auto fade-in">
+              <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
+                <div className="flex gap-1 items-center">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:0ms]" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:150ms]" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:300ms]" />
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-        {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
-          <div className="flex justify-start fade-in">
-            <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
-              <div className="flex gap-1 items-center">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:0ms]" />
-                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:150ms]" />
-                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:300ms]" />
-              </div>
             </div>
-          </div>
-        )}
-        {showFeedback && extractedPlaces.length > 0 && !isLoading && (
-          <div className="mt-2 fade-in">
-            <ChatFeedback places={extractedPlaces} onSubmit={handleFeedbackSubmit} />
-          </div>
-        )}
-      </div>
-
-      {/* Input */}
-      <div className="border-t border-border p-4 bg-card/80 backdrop-blur-sm">
-        <div className="flex gap-2 items-end max-w-3xl mx-auto">
-          <Textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="What are you craving? 🍛"
-            className="min-h-[44px] max-h-32 resize-none rounded-xl border-border focus:border-primary/50 bg-background"
-            rows={1}
-          />
-          <Button
-            onClick={() => send(input)}
-            disabled={!input.trim() || isLoading}
-            size="icon"
-            className="rounded-xl h-11 w-11 shrink-0 bg-primary hover:bg-primary/90 shadow-sm"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
+          )}
+          {showFeedback && extractedPlaces.length > 0 && !isLoading && (
+            <div className="mt-2 px-4 max-w-3xl mx-auto fade-in">
+              <ChatFeedback places={extractedPlaces} onSubmit={handleFeedbackSubmit} />
+            </div>
+          )}
         </div>
-        {!user && (
-          <p className="text-center text-xs text-muted-foreground mt-2">
-            <a href="/auth" className="text-primary font-medium hover:underline">Sign in</a> to sync chat history across devices
-          </p>
-        )}
+
+        {/* Input */}
+        <div className="border-t border-border p-4 bg-card/80 backdrop-blur-sm">
+          <div className="flex gap-2 items-end max-w-3xl mx-auto">
+            <Textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="What are you craving? 🍛"
+              className="min-h-[44px] max-h-32 resize-none rounded-xl border-border focus:border-primary/50 bg-background"
+              rows={1}
+            />
+            <Button
+              onClick={() => send(input)}
+              disabled={!input.trim() || isLoading}
+              size="icon"
+              className="rounded-xl h-11 w-11 shrink-0 bg-primary hover:bg-primary/90 shadow-sm"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+          {!user && (
+            <p className="text-center text-xs text-muted-foreground mt-2">
+              <a href="/auth" className="text-primary font-medium hover:underline">Sign in</a> to sync chat history across devices
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Save Recommendation Modal */}
@@ -527,9 +619,7 @@ const ChatPage = () => {
         onOpenChange={setSaveRecommendationOpen}
         restaurantName={selectedRestaurantForSave}
         sessionId={activeSessionId || undefined}
-        onSuccess={() => {
-          // Optionally show a success toast here
-        }}
+        onSuccess={() => {}}
       />
     </div>
   );
