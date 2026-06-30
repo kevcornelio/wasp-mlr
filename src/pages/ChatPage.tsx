@@ -631,27 +631,27 @@ const ChatPage = () => {
         </div>
 
         {/* Input */}
-        <div className="border-t border-border p-4 bg-card/80 backdrop-blur-sm">
-          <div className="flex gap-2 items-end max-w-4xl mx-auto">
+        <div className="border-t-2 border-orange-200 px-6 py-5 bg-white shadow-[0_-4px_24px_rgba(0,0,0,0.06)]">
+          <div className="flex gap-3 items-end max-w-4xl mx-auto">
             <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="What are you craving? 🍛"
-              className="min-h-[44px] max-h-32 resize-none rounded-xl border-border focus:border-primary/50 bg-background"
+              className="min-h-[56px] max-h-40 resize-none rounded-2xl border-2 border-orange-200 focus:border-primary text-base px-5 py-4 bg-orange-50 placeholder:text-muted-foreground/60 shadow-sm"
               rows={1}
             />
             <Button
               onClick={() => send(input)}
               disabled={!input.trim() || isLoading}
-              size="icon"
-              className="rounded-xl h-11 w-11 shrink-0 bg-primary hover:bg-primary/90 shadow-sm"
+              className="rounded-2xl h-14 px-6 shrink-0 bg-primary hover:bg-primary/90 shadow-md text-base font-semibold gap-2"
             >
-              <Send className="h-4 w-4" />
+              <Send className="h-5 w-5" />
+              <span className="hidden sm:inline">Send</span>
             </Button>
           </div>
           {!user && (
-            <p className="text-center text-xs text-muted-foreground mt-2">
+            <p className="text-center text-xs text-muted-foreground mt-3">
               <a href="/auth" className="text-primary font-medium hover:underline">Sign in</a> to sync chat history across devices
             </p>
           )}
