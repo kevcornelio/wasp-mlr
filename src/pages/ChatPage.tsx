@@ -459,120 +459,114 @@ const ChatPage = () => {
         {/* Messages */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto">
           {messages.length === 0 ? (
-            <div className="hero-bg flex flex-col items-center justify-center min-h-full text-center px-8 py-16 gap-8">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium">
-                <span>🌶️</span> Mangalore's AI Food Guide
-              </div>
+            {/* Desktop: two-column hero. Mobile: stacked */}
+            <div className="hero-bg min-h-full flex flex-col md:flex-row">
 
-              <div className="space-y-3 max-w-2xl">
-                <h1 className="text-5xl md:text-7xl text-foreground leading-[1.05] tracking-tight" style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800 }}>
+              {/* LEFT — hero text */}
+              <div className="md:w-2/5 flex flex-col justify-center px-10 py-16 gap-6 text-left md:sticky md:top-0 md:h-screen">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium w-fit">
+                  <span>🌶️</span> Mangalore's AI Food Guide
+                </div>
+                <h1 className="text-5xl xl:text-7xl text-foreground leading-[1.05] tracking-tight" style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800 }}>
                   {user && firstName
                     ? <><span className="text-primary">{firstName},</span><br />what's<br />the craving?</>
                     : <>Find your<br />next <span className="text-primary">favourite</span><br />meal.</>
                   }
                 </h1>
-                <p className="text-muted-foreground text-lg leading-relaxed max-w-lg mx-auto">
+                <p className="text-muted-foreground text-base leading-relaxed max-w-xs">
                   Tell me your mood, who you're with, or what you're craving. I'll find the perfect dish and spot in Mangalore.
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 w-full max-w-2xl">
-                {QUICK_PROMPTS.map((prompt) => (
-                  <button
-                    key={prompt}
-                    onClick={() => send(prompt)}
-                    className="group flex items-start gap-3 px-4 py-3.5 rounded-2xl border border-border bg-card/80 hover:bg-card hover:border-primary/40 hover:shadow-md text-foreground transition-all text-left"
-                  >
-                    <span className="mt-0.5 h-6 w-6 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                      <MapPin className="h-3.5 w-3.5 text-primary" />
-                    </span>
-                    <span className="text-sm leading-snug">{prompt}</span>
-                  </button>
-                ))}
-              </div>
+              {/* RIGHT — prompts + content */}
+              <div className="md:w-3/5 flex flex-col gap-6 px-8 py-16 overflow-y-auto">
 
-              {latestBlogs.length > 0 && (
-                <div className="w-full max-w-2xl space-y-3 pt-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <BookOpen className="h-4 w-4 text-primary" />
-                      <h2 className="text-sm font-semibold text-foreground tracking-tight">Latest food stories</h2>
-                    </div>
+                {/* Quick prompts */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {QUICK_PROMPTS.map((prompt) => (
                     <button
-                      onClick={() => navigate('/blog')}
-                      className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5"
+                      key={prompt}
+                      onClick={() => send(prompt)}
+                      className="group flex items-start gap-3 px-4 py-4 rounded-2xl border border-border bg-card/80 hover:bg-card hover:border-primary/40 hover:shadow-md text-foreground transition-all text-left"
                     >
-                      View all <ChevronRight className="h-3 w-3" />
+                      <span className="mt-0.5 h-6 w-6 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                        <MapPin className="h-3.5 w-3.5 text-primary" />
+                      </span>
+                      <span className="text-sm leading-snug">{prompt}</span>
                     </button>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-                    {latestBlogs.map((blog) => (
-                      <button
-                        key={blog.id}
-                        onClick={() => navigate(`/blog/${blog.id}`)}
-                        className="group w-full text-left bg-card/80 hover:bg-card border border-border hover:border-primary/40 hover:shadow-md rounded-2xl px-4 py-3 transition-all"
-                      >
-                        <h3 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-1">
-                          {blog.title}
-                        </h3>
-                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-2">
-                          {blog.content}
-                        </p>
-                        <div className="flex items-center gap-2 mt-2 flex-wrap">
-                          {blog.restaurant_name && (
-                            <span className="inline-flex items-center gap-1 text-[10px] text-primary font-medium bg-primary/10 px-1.5 py-0.5 rounded-full">
-                              <MapPin className="h-2.5 w-2.5" />
-                              {blog.restaurant_name}
+                  ))}
+                </div>
+
+                {/* Latest blogs */}
+                {latestBlogs.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="h-4 w-4 text-primary" />
+                        <h2 className="text-sm font-semibold text-foreground tracking-tight">Latest food stories</h2>
+                      </div>
+                      <button onClick={() => navigate('/blog')} className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5">
+                        View all <ChevronRight className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {latestBlogs.map((blog) => (
+                        <button
+                          key={blog.id}
+                          onClick={() => navigate(`/blog/${blog.id}`)}
+                          className="group w-full text-left bg-card/80 hover:bg-card border border-border hover:border-primary/40 hover:shadow-md rounded-2xl px-4 py-3 transition-all"
+                        >
+                          <h3 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-1">{blog.title}</h3>
+                          <p className="text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-2">{blog.content}</p>
+                          <div className="flex items-center gap-2 mt-2 flex-wrap">
+                            {blog.restaurant_name && (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-primary font-medium bg-primary/10 px-1.5 py-0.5 rounded-full">
+                                <MapPin className="h-2.5 w-2.5" />{blog.restaurant_name}
+                              </span>
+                            )}
+                            <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                              <Calendar className="h-2.5 w-2.5" />
+                              {new Date(blog.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                             </span>
-                          )}
-                          <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                            <Calendar className="h-2.5 w-2.5" />
-                            {new Date(blog.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">by {blog.author_name}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {latestPhotos.length > 0 && (
-                <div className="w-full max-w-2xl space-y-3 pt-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Camera className="h-4 w-4 text-primary" />
-                      <h2 className="text-sm font-semibold text-foreground tracking-tight">Food photos</h2>
-                    </div>
-                    <button
-                      onClick={() => navigate('/photos')}
-                      className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5"
-                    >
-                      View all <ChevronRight className="h-3 w-3" />
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                    {latestPhotos.map(photo => (
-                      <button
-                        key={photo.id}
-                        onClick={() => navigate('/photos')}
-                        className="group relative aspect-square rounded-xl overflow-hidden border border-border hover:border-primary/40 hover:shadow-md transition-all"
-                      >
-                        <img
-                          src={photo.photo_url}
-                          alt={photo.caption ?? 'Food photo'}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        {photo.caption && (
-                          <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-1.5 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <p className="text-[9px] text-white truncate">{photo.caption}</p>
+                            <span className="text-[10px] text-muted-foreground">by {blog.author_name}</span>
                           </div>
-                        )}
-                      </button>
-                    ))}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+
+                {/* Latest photos */}
+                {latestPhotos.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Camera className="h-4 w-4 text-primary" />
+                        <h2 className="text-sm font-semibold text-foreground tracking-tight">Food photos</h2>
+                      </div>
+                      <button onClick={() => navigate('/photos')} className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5">
+                        View all <ChevronRight className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                      {latestPhotos.map(photo => (
+                        <button
+                          key={photo.id}
+                          onClick={() => navigate('/photos')}
+                          className="group relative aspect-square rounded-xl overflow-hidden border border-border hover:border-primary/40 hover:shadow-md transition-all"
+                        >
+                          <img src={photo.photo_url} alt={photo.caption ?? 'Food photo'} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                          {photo.caption && (
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-1.5 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <p className="text-[9px] text-white truncate">{photo.caption}</p>
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto">
