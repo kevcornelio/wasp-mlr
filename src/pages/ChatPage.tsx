@@ -296,7 +296,7 @@ const ChatPage = () => {
     <div className="flex h-screen w-full bg-orange-50">
 
       {/* ── Desktop sidebar ── */}
-      <aside className="hidden md:flex flex-col w-56 shrink-0 bg-white border-r border-orange-200 h-full">
+      <aside className="hidden md:flex flex-col w-64 shrink-0 bg-white border-r border-orange-200 h-full">
         {/* Brand */}
         <div className="flex items-center gap-2.5 px-4 py-4 border-b border-orange-100">
           <div className="h-8 w-8 rounded-xl bg-primary flex items-center justify-center shadow-sm shrink-0">
@@ -459,24 +459,24 @@ const ChatPage = () => {
         {/* Messages */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto">
           {messages.length === 0 ? (
-            <div className="hero-bg flex flex-col items-center justify-center min-h-full text-center px-6 py-16 gap-8">
+            <div className="hero-bg flex flex-col items-center justify-center min-h-full text-center px-8 py-16 gap-8">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium">
                 <span>🌶️</span> Mangalore's AI Food Guide
               </div>
 
-              <div className="space-y-3 max-w-lg">
-                <h1 className="text-5xl md:text-6xl text-foreground leading-[1.05] tracking-tight" style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800 }}>
+              <div className="space-y-3 max-w-2xl">
+                <h1 className="text-5xl md:text-7xl text-foreground leading-[1.05] tracking-tight" style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800 }}>
                   {user && firstName
                     ? <><span className="text-primary">{firstName},</span><br />what's<br />the craving?</>
                     : <>Find your<br />next <span className="text-primary">favourite</span><br />meal.</>
                   }
                 </h1>
-                <p className="text-muted-foreground text-base leading-relaxed max-w-sm mx-auto">
+                <p className="text-muted-foreground text-lg leading-relaxed max-w-lg mx-auto">
                   Tell me your mood, who you're with, or what you're craving. I'll find the perfect dish and spot in Mangalore.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
+              <div className="grid grid-cols-2 gap-3 w-full max-w-2xl">
                 {QUICK_PROMPTS.map((prompt) => (
                   <button
                     key={prompt}
@@ -492,7 +492,7 @@ const ChatPage = () => {
               </div>
 
               {latestBlogs.length > 0 && (
-                <div className="w-full max-w-lg space-y-3 pt-4">
+                <div className="w-full max-w-2xl space-y-3 pt-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <BookOpen className="h-4 w-4 text-primary" />
@@ -505,7 +505,7 @@ const ChatPage = () => {
                       View all <ChevronRight className="h-3 w-3" />
                     </button>
                   </div>
-                  <div className="space-y-2.5">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
                     {latestBlogs.map((blog) => (
                       <button
                         key={blog.id}
@@ -538,7 +538,7 @@ const ChatPage = () => {
               )}
 
               {latestPhotos.length > 0 && (
-                <div className="w-full max-w-lg space-y-3 pt-2">
+                <div className="w-full max-w-2xl space-y-3 pt-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Camera className="h-4 w-4 text-primary" />
@@ -551,7 +551,7 @@ const ChatPage = () => {
                       View all <ChevronRight className="h-3 w-3" />
                     </button>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
                     {latestPhotos.map(photo => (
                       <button
                         key={photo.id}
@@ -575,7 +575,7 @@ const ChatPage = () => {
               )}
             </div>
           ) : (
-            <div className="px-4 py-6 space-y-4 max-w-3xl mx-auto">
+            <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto">
               {messages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} fade-in`}>
                   <div className="flex flex-col gap-2 w-full max-w-[80%]">
@@ -619,7 +619,7 @@ const ChatPage = () => {
             </div>
           )}
           {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
-            <div className="flex justify-start px-4 max-w-3xl mx-auto fade-in">
+            <div className="flex justify-start px-4 max-w-4xl mx-auto fade-in">
               <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
                 <div className="flex gap-1 items-center">
                   <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:0ms]" />
@@ -630,7 +630,7 @@ const ChatPage = () => {
             </div>
           )}
           {showFeedback && extractedPlaces.length > 0 && !isLoading && (
-            <div className="mt-2 px-4 max-w-3xl mx-auto fade-in">
+            <div className="mt-2 px-4 max-w-4xl mx-auto fade-in">
               <ChatFeedback places={extractedPlaces} onSubmit={handleFeedbackSubmit} />
             </div>
           )}
@@ -638,7 +638,7 @@ const ChatPage = () => {
 
         {/* Input */}
         <div className="border-t border-border p-4 bg-card/80 backdrop-blur-sm">
-          <div className="flex gap-2 items-end max-w-3xl mx-auto">
+          <div className="flex gap-2 items-end max-w-4xl mx-auto">
             <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
