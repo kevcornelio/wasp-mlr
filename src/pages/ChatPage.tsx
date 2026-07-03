@@ -43,42 +43,65 @@ const QUICK_PROMPT_POOL: { text: string; keywords: string[] }[] = [
 // Emoji shown on quick-prompt cards, cycled by position.
 const PROMPT_EMOJIS = ['🌶️', '🍛', '🦐', '☕', '🍰', '🥘', '🍜', '🍢'];
 
+// Words that only start a genuine question — used to decide whether a "?" belongs.
+const INTERROGATIVE_START =
+  /^(what|what's|where|which|who|how|when|why|is|are|can|could|should|would|will|do|does|did|any|got)\b/i;
+
 // Cleans up a raw session title (past user message) into a readable prompt.
 const formatPastPrompt = (title: string): string => {
   // Remove trailing ellipsis from 50-char truncation
   let t = title.replace(/\.{2,}$/, '').trim();
   // Capitalize first letter
   t = t.charAt(0).toUpperCase() + t.slice(1);
-  // Add question mark if no sentence-ending punctuation
-  if (!/[.?!]$/.test(t)) t += '?';
+  // Add a question mark only when it actually reads as a question;
+  // statements like "I want biryani" stay as-is.
+  if (!/[.?!]$/.test(t) && INTERROGATIVE_START.test(t)) t += '?';
   return t;
 };
 
 const FOOD_KEYWORDS = [
-  'food', 'eat', 'restaurant', 'cafe', 'hotel', 'dine', 'dining', 'dinner', 'lunch', 'breakfast',
-  'brunch', 'snack', 'bite', 'meal', 'dish', 'cuisine', 'menu', 'cook', 'recipe', 'hungry',
-  'craving', 'drink', 'juice', 'coffee', 'tea', 'dessert', 'sweet', 'spicy', 'biryani', 'dosa',
-  'idli', 'fish', 'seafood', 'chicken', 'mutton', 'veg', 'place', 'spot', 'where', 'suggest',
-  'recommend', 'best', 'good', 'try', 'taste', 'mangalore', 'mlr', 'udupi', 'mangalorean',
+  'food', 'eat', 'restaurant', 'cafe', 'café', 'hotel', 'dine', 'dining', 'dinner', 'lunch',
+  'breakfast', 'brunch', 'snack', 'bite', 'meal', 'dish', 'cuisine', 'menu', 'cook', 'recipe',
+  'hungry', 'craving', 'drink', 'juice', 'coffee', 'tea', 'dessert', 'sweet', 'spicy', 'biryani',
+  'dosa', 'idli', 'fish', 'seafood', 'chicken', 'mutton', 'veg', 'vegetarian', 'buffet',
+  'mangalore', 'mlr', 'udupi', 'mangalorean',
 ];
 
-// Returns true if the session title looks like a food/restaurant-related question.
+// Matches a keyword only as a whole word ("eat" must not match "great" or
+// "weather"), using letter guards instead of \b so accented keywords work too.
 const isFoodRelated = (title: string): boolean => {
   const lower = title.toLowerCase();
-  return FOOD_KEYWORDS.some((k) => lower.includes(k));
+  return FOOD_KEYWORDS.some((k) =>
+    new RegExp(`(^|[^a-zà-ÿ])${k}([^a-zà-ÿ]|$)`).test(lower)
+  );
 };
 
 // Returns true if the title was NOT cut off mid-sentence by the 50-char truncation.
 // Truncated titles end with "..." and form incomplete, nonsensical questions.
 const isComplete = (title: string): boolean => !title.trimEnd().endsWith('...');
 
-// Returns 4 quick prompts: most recent relevant past questions first (formatted),
-// filled with pool defaults for any slots that don't have food-related history.
+// Filters out greetings, acknowledgements, and fragments too short to be a
+// real question ("hi", "thanks", "ok try that").
+const isSubstantial = (title: string): boolean => {
+  const t = title.trim();
+  return t.length >= 15 && t.split(/\s+/).length >= 3;
+};
+
+// Returns 4 quick prompts: most recent relevant past questions first (formatted,
+// deduplicated), filled with pool defaults for any slots that don't have
+// food-related history.
 const pickQuickPrompts = (pastTitles: string[], count = 4): string[] => {
-  const relevant = pastTitles
-    .filter((t) => isComplete(t) && isFoodRelated(t))
-    .slice(0, count)
-    .map(formatPastPrompt);
+  const seen = new Set<string>();
+  const relevant: string[] = [];
+  for (const title of pastTitles) {
+    if (relevant.length >= count) break;
+    if (!isComplete(title) || !isSubstantial(title) || !isFoodRelated(title)) continue;
+    const formatted = formatPastPrompt(title);
+    const key = formatted.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    relevant.push(formatted);
+  }
   if (relevant.length >= count) return relevant;
 
   const pool = QUICK_PROMPT_POOL.slice(0, count - relevant.length).map((p) => p.text);
