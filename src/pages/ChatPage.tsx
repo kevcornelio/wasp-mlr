@@ -378,7 +378,7 @@ const ChatPage = () => {
           <div>
             <span className="text-base leading-none tracking-tight" style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800 }}>
               <span className="text-white">wassup</span>{' '}
-              <span className="text-gradient-warm">mlr</span>
+              <span className="text-gradient-bright">mlr</span>
             </span>
             {user && firstName && (
               <p className="text-[11px] text-white/50 leading-none mt-0.5">Hey {firstName}!</p>
@@ -476,7 +476,7 @@ const ChatPage = () => {
             </div>
             <span className="text-base leading-none tracking-tight" style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800 }}>
               <span className="text-white">wassup</span>{' '}
-              <span className="text-gradient-warm">mlr</span>
+              <span className="text-gradient-bright">mlr</span>
             </span>
           </button>
           <div className="flex items-center gap-1">

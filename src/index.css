@@ -227,6 +227,20 @@
     50% { background-position: 100% 50%; }
   }
 
+  /* Brighter variant for small text on dark backgrounds */
+  .text-gradient-bright {
+    background: linear-gradient(100deg,
+      hsl(38 100% 64%) 0%,
+      hsl(20 100% 66%) 35%,
+      hsl(45 100% 62%) 70%,
+      hsl(38 100% 64%) 100%);
+    background-size: 250% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: gradientShift 5s ease-in-out infinite;
+  }
+
   /* Gentle bobbing for decorative elements */
   .float-slow { animation: floatY 6s ease-in-out infinite; }
   .float-slower { animation: floatY 9s ease-in-out infinite reverse; }
