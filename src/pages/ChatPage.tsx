@@ -500,7 +500,7 @@ const ChatPage = () => {
             <div className="hero-bg min-h-full flex flex-col md:flex-row">
 
               {/* LEFT — hero text */}
-              <div className="md:w-2/5 flex flex-col justify-center px-10 py-16 gap-6 text-left md:sticky md:top-0 md:h-screen">
+              <div className="md:w-2/5 flex flex-col justify-start px-10 pt-16 pb-16 gap-6 text-left md:sticky md:top-0 md:h-screen">
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium w-fit">
                   <span>🌶️</span> Mangalore's AI Food Guide
                 </div>
