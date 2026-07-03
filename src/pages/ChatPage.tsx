@@ -334,8 +334,11 @@ const ChatPage = () => {
 
       {/* ── Desktop sidebar ── */}
       <aside className="hidden md:flex flex-col w-64 shrink-0 bg-white border-r border-orange-200 h-full">
-        {/* Brand */}
-        <div className="flex items-center gap-2.5 px-4 py-4 border-b border-orange-100">
+        {/* Brand — click to return home */}
+        <button
+          onClick={startNewChat}
+          className="flex items-center gap-2.5 px-4 py-4 border-b border-orange-100 text-left hover:bg-orange-50 transition-colors"
+        >
           <div className="h-8 w-8 rounded-xl bg-primary flex items-center justify-center shadow-sm shrink-0">
             <UtensilsCrossed className="h-4 w-4 text-white" />
           </div>
@@ -345,14 +348,14 @@ const ChatPage = () => {
               <p className="text-[11px] text-muted-foreground leading-none mt-0.5">Hey {firstName}!</p>
             )}
           </div>
-        </div>
+        </button>
 
         {/* Nav links */}
         <nav className="px-2 py-3 space-y-0.5">
           {sidebarNav.map(item => (
             <button
               key={item.path}
-              onClick={() => navigate(item.path)}
+              onClick={() => (item.path === '/chat' ? startNewChat() : navigate(item.path))}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-foreground hover:bg-orange-50 hover:text-primary"
             >
               <item.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -431,12 +434,12 @@ const ChatPage = () => {
 
         {/* Mobile-only header */}
         <div className="flex md:hidden items-center justify-between px-4 py-3 border-b border-orange-200 bg-white sticky top-0 z-10">
-          <div className="flex items-center gap-2.5">
+          <button onClick={startNewChat} className="flex items-center gap-2.5">
             <div className="h-8 w-8 rounded-xl bg-primary flex items-center justify-center shadow-sm">
               <UtensilsCrossed className="h-4 w-4 text-white" />
             </div>
             <span className="font-semibold text-sm text-foreground tracking-tight">wassup mlr</span>
-          </div>
+          </button>
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="sm" onClick={startNewChat} className="h-8 text-xs gap-1.5 rounded-lg">
               <Plus className="h-3.5 w-3.5" /> New
