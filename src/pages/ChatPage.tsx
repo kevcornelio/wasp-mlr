@@ -40,13 +40,24 @@ const QUICK_PROMPT_POOL: { text: string; keywords: string[] }[] = [
   { text: "Something new I haven't tried before?", keywords: ['new', 'explore', 'try'] },
 ];
 
+// Cleans up a raw session title (past user message) into a readable prompt.
+const formatPastPrompt = (title: string): string => {
+  // Remove trailing ellipsis from 50-char truncation
+  let t = title.replace(/\.{2,}$/, '').trim();
+  // Capitalize first letter
+  t = t.charAt(0).toUpperCase() + t.slice(1);
+  // Add question mark if no sentence-ending punctuation
+  if (!/[.?!]$/.test(t)) t += '?';
+  return t;
+};
+
 // Picks a rotating set of quick prompts.
 // If the user has past sessions, we surface their actual past questions
 // (session titles) so they can quickly revisit or refine them.
 // Pool suggestions fill any remaining slots for users with little history.
 const pickQuickPrompts = (pastTitles: string[], count = 4): string[] => {
   const shuffledPast = [...pastTitles].sort(() => Math.random() - 0.5);
-  const fromHistory = shuffledPast.slice(0, count);
+  const fromHistory = shuffledPast.slice(0, count).map(formatPastPrompt);
 
   if (fromHistory.length >= count) return fromHistory;
 
