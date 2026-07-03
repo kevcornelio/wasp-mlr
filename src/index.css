@@ -187,8 +187,82 @@
   }
 
   .hero-bg {
-    background: radial-gradient(ellipse 80% 60% at 50% 0%, hsl(28 96% 54% / 0.12) 0%, transparent 70%),
-                radial-gradient(ellipse 60% 40% at 80% 100%, hsl(28 96% 54% / 0.07) 0%, transparent 60%),
-                hsl(var(--background));
+    background-image:
+      radial-gradient(ellipse 80% 60% at 50% 0%, hsl(28 96% 54% / 0.14) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 40% at 85% 100%, hsl(4 86% 58% / 0.08) 0%, transparent 60%),
+      radial-gradient(hsl(28 60% 55% / 0.16) 1px, transparent 1.5px);
+    background-size: auto, auto, 24px 24px;
+    background-color: hsl(var(--background));
+  }
+
+  /* Full-bleed food-photo hero: user's own photo under a dark warm wash */
+  .hero-photo {
+    background-image:
+      linear-gradient(105deg,
+        hsl(20 40% 6% / 0.82) 0%,
+        hsl(20 35% 8% / 0.55) 45%,
+        hsl(24 55% 12% / 0.5) 100%),
+      url('/hero-bg.jpg');
+    background-size: cover;
+    background-position: center;
+    background-color: hsl(20 30% 8%);
+  }
+
+  /* Animated warm gradient text for headline accents */
+  .text-gradient-warm {
+    background: linear-gradient(100deg,
+      hsl(28 96% 54%) 0%,
+      hsl(4 86% 56%) 35%,
+      hsl(38 95% 50%) 70%,
+      hsl(28 96% 54%) 100%);
+    background-size: 250% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: gradientShift 5s ease-in-out infinite;
+  }
+
+  @keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  /* Gentle bobbing for decorative elements */
+  .float-slow { animation: floatY 6s ease-in-out infinite; }
+  .float-slower { animation: floatY 9s ease-in-out infinite reverse; }
+
+  @keyframes floatY {
+    0%, 100% { transform: translateY(0) rotate(-4deg); }
+    50% { transform: translateY(-14px) rotate(5deg); }
+  }
+
+  /* Staggered entrance for hero content */
+  .fade-up { animation: fadeUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .fade-up-1 { animation-delay: 0.08s; }
+  .fade-up-2 { animation-delay: 0.16s; }
+  .fade-up-3 { animation-delay: 0.24s; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .pulse-dot { animation: pulseDot 2s ease-in-out infinite; }
+
+  @keyframes pulseDot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.75); }
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .text-gradient-warm, .float-slow, .float-slower, .fade-up, .pulse-dot, .fade-in {
+    animation: none;
+  }
+}
+
+/* Slim, warm-toned scrollbars */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: hsl(28 25% 78%); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(28 40% 65%); }
