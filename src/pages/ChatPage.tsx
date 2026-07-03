@@ -51,25 +51,14 @@ const formatPastPrompt = (title: string): string => {
   return t;
 };
 
-// Picks a rotating set of quick prompts.
-// If the user has past sessions, we surface their actual past questions
-// (session titles) so they can quickly revisit or refine them.
-// Pool suggestions fill any remaining slots for users with little history.
+// Returns 4 quick prompts: most recent past questions first (formatted),
+// filled with pool defaults for new users with little history.
 const pickQuickPrompts = (pastTitles: string[], count = 4): string[] => {
-  const shuffledPast = [...pastTitles].sort(() => Math.random() - 0.5);
-  const fromHistory = shuffledPast.slice(0, count).map(formatPastPrompt);
-
+  const fromHistory = pastTitles.slice(0, count).map(formatPastPrompt);
   if (fromHistory.length >= count) return fromHistory;
 
-  // Not enough history — fill remaining slots from the pool, skipping topics
-  // the user has already explored.
-  const pastText = pastTitles.join(' ').toLowerCase();
-  const freshPool = QUICK_PROMPT_POOL.filter(
-    (p) => !p.keywords.some((k) => pastText.includes(k))
-  );
-  const pool = freshPool.length > 0 ? freshPool : QUICK_PROMPT_POOL;
-  const shuffledPool = [...pool].sort(() => Math.random() - 0.5).map((p) => p.text);
-  return [...fromHistory, ...shuffledPool].slice(0, count);
+  const pool = QUICK_PROMPT_POOL.slice(0, count - fromHistory.length).map((p) => p.text);
+  return [...fromHistory, ...pool];
 };
 
 const ChatPage = () => {
