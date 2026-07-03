@@ -536,7 +536,7 @@ const ChatPage = () => {
             <div className="hero-photo min-h-full flex flex-col md:flex-row">
 
               {/* LEFT — hero text */}
-              <div className="relative md:w-2/5 flex flex-col justify-start px-10 pt-16 pb-16 gap-6 text-left md:sticky md:top-0 md:h-screen">
+              <div className="relative md:w-2/5 flex flex-col justify-start px-10 pt-12 pb-10 gap-6 text-left md:sticky md:top-0 md:self-start">
                 {/* Floating food accents */}
                 <span aria-hidden className="hidden md:block absolute top-24 right-10 text-5xl float-slow select-none drop-shadow-sm">🍜</span>
                 <span aria-hidden className="hidden md:block absolute top-1/2 right-20 text-4xl float-slower select-none drop-shadow-sm">🦐</span>
@@ -560,7 +560,7 @@ const ChatPage = () => {
               </div>
 
               {/* RIGHT — prompts + content */}
-              <div className="md:w-3/5 flex flex-col gap-6 px-8 py-16 overflow-y-auto">
+              <div className="md:w-3/5 flex flex-col gap-5 px-8 py-12">
 
                 {/* Quick prompts */}
                 <div className="fade-up fade-up-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -712,21 +712,21 @@ const ChatPage = () => {
         </div>
 
         {/* Input */}
-        <div className="border-t border-white/10 px-6 py-5 sidebar-gradient">
+        <div className="border-t border-white/10 px-6 py-4 sidebar-gradient">
           <div className="max-w-4xl mx-auto">
-            <div className="flex gap-3 items-end rounded-3xl border border-white/15 focus-within:border-primary/60 bg-white/10 backdrop-blur-md px-5 py-4 shadow-lg shadow-black/20 focus-within:shadow-primary/20 transition-all duration-200">
+            <div className="flex gap-3 items-end rounded-3xl border border-white/15 focus-within:border-primary/60 bg-white/10 backdrop-blur-md px-5 py-3 shadow-lg shadow-black/20 focus-within:shadow-primary/20 transition-all duration-200">
               <Textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="What are you craving? 🍛"
-                className="flex-1 min-h-[64px] max-h-48 resize-none border-0 bg-transparent text-lg px-0 py-0 shadow-none focus-visible:ring-0 text-white placeholder:text-white/40 leading-relaxed"
-                rows={2}
+                className="flex-1 min-h-[48px] max-h-48 resize-none border-0 bg-transparent text-lg px-0 py-0 shadow-none focus-visible:ring-0 text-white placeholder:text-white/40 leading-relaxed"
+                rows={1}
               />
               <Button
                 onClick={() => send(input)}
                 disabled={!input.trim() || isLoading}
-                className="rounded-2xl h-14 px-7 shrink-0 bg-gradient-to-br from-primary to-red-500 hover:opacity-90 hover:scale-[1.03] active:scale-[0.98] shadow-md shadow-primary/40 text-base font-semibold gap-2 self-end transition-all duration-200 disabled:opacity-40"
+                className="rounded-2xl h-12 px-6 shrink-0 bg-gradient-to-br from-primary to-red-500 hover:opacity-90 hover:scale-[1.03] active:scale-[0.98] shadow-md shadow-primary/40 text-base font-semibold gap-2 self-end transition-all duration-200 disabled:opacity-40"
               >
                 <Send className="h-5 w-5" />
                 <span className="hidden sm:inline">Send</span>
