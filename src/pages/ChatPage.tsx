@@ -15,12 +15,42 @@ type Msg = { role: 'user' | 'assistant'; content: string };
 
 const CHAT_URL = '/api/chat';
 
-const QUICK_PROMPTS = [
-  "I'm craving something spicy, suggest something!",
-  "Date night dinner for two — where should we go?",
-  "Late night food options in Mangalore?",
-  "What's the vibe for a Sunday family lunch?",
+// Pool of quick-prompt suggestions with topic keywords used to avoid repeating
+// questions similar to ones the user has already asked before.
+const QUICK_PROMPT_POOL: { text: string; keywords: string[] }[] = [
+  { text: "I'm craving something spicy, suggest something!", keywords: ['spicy', 'spice'] },
+  { text: "Date night dinner for two — where should we go?", keywords: ['date night', 'romantic', 'couple'] },
+  { text: "Late night food options in Mangalore?", keywords: ['late night', 'midnight'] },
+  { text: "What's the vibe for a Sunday family lunch?", keywords: ['family', 'sunday lunch'] },
+  { text: "Best places for authentic Mangalorean seafood?", keywords: ['seafood', 'fish', 'prawn', 'crab'] },
+  { text: "Where can I get a good biryani nearby?", keywords: ['biryani'] },
+  { text: "Budget-friendly eats for a student?", keywords: ['budget', 'cheap', 'student'] },
+  { text: "Best breakfast spots for dosa or idli?", keywords: ['breakfast', 'dosa', 'idli'] },
+  { text: "Where should I go for a birthday celebration?", keywords: ['birthday', 'celebration', 'party'] },
+  { text: "Looking for a quiet café to work from — any suggestions?", keywords: ['cafe', 'café', 'coffee', 'work'] },
+  { text: "Craving something sweet — best dessert places?", keywords: ['dessert', 'sweet', 'ice cream'] },
+  { text: "Rainy day comfort food recommendations?", keywords: ['rain', 'monsoon', 'comfort'] },
+  { text: "Best rooftop or outdoor dining spots?", keywords: ['rooftop', 'outdoor', 'view'] },
+  { text: "Quick bite before catching a movie?", keywords: ['quick bite', 'movie', 'fast food'] },
+  { text: "Vegetarian-friendly restaurants with great variety?", keywords: ['vegetarian', 'veg'] },
+  { text: "Where do locals actually eat — hidden gems?", keywords: ['local', 'hidden gem', 'authentic'] },
+  { text: "Good spot for a large group hangout?", keywords: ['group', 'hangout', 'friends'] },
+  { text: "Best North Indian food in Mangalore?", keywords: ['north indian', 'punjabi'] },
+  { text: "Healthy meal options nearby?", keywords: ['healthy', 'diet', 'salad'] },
+  { text: "Something new I haven't tried before?", keywords: ['new', 'explore', 'try'] },
 ];
+
+// Picks a rotating set of quick prompts, favoring ones unrelated to topics
+// already covered in the user's past chat session titles.
+const pickQuickPrompts = (pastTitles: string[], count = 4): string[] => {
+  const pastText = pastTitles.join(' ').toLowerCase();
+  const unseen = QUICK_PROMPT_POOL.filter(
+    (p) => !p.keywords.some((k) => pastText.includes(k))
+  );
+  const pool = unseen.length >= count ? unseen : QUICK_PROMPT_POOL;
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count).map((p) => p.text);
+};
 
 const ChatPage = () => {
   const { user, profile, signOut } = useAuth();
@@ -48,6 +78,13 @@ const ChatPage = () => {
 
   // Use authenticated client for logged-in users, anon client otherwise
   const db = useMemo(() => (user ? supabase : getAnonSupabaseClient()), [user]);
+
+  // Rotating quick prompts — recomputed whenever session history changes,
+  // steering away from topics the user has already asked about.
+  const quickPrompts = useMemo(
+    () => pickQuickPrompts(sessions.map((s) => s.title)),
+    [sessions]
+  );
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -459,7 +496,7 @@ const ChatPage = () => {
         {/* Messages */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto">
           {messages.length === 0 ? (
-            {/* Desktop: two-column hero. Mobile: stacked */}
+            // Desktop: two-column hero. Mobile: stacked
             <div className="hero-bg min-h-full flex flex-col md:flex-row">
 
               {/* LEFT — hero text */}
@@ -483,7 +520,7 @@ const ChatPage = () => {
 
                 {/* Quick prompts */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {QUICK_PROMPTS.map((prompt) => (
+                  {quickPrompts.map((prompt) => (
                     <button
                       key={prompt}
                       onClick={() => send(prompt)}
