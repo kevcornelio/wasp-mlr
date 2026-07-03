@@ -376,7 +376,10 @@ const ChatPage = () => {
             <UtensilsCrossed className="h-4 w-4 text-white" />
           </div>
           <div>
-            <span className="font-semibold text-sm text-white tracking-tight">wassup mlr</span>
+            <span className="text-base leading-none tracking-tight" style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800 }}>
+              <span className="text-white">wassup</span>{' '}
+              <span className="text-gradient-warm">mlr</span>
+            </span>
             {user && firstName && (
               <p className="text-[11px] text-white/50 leading-none mt-0.5">Hey {firstName}!</p>
             )}
@@ -471,7 +474,10 @@ const ChatPage = () => {
             <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-primary to-red-500 flex items-center justify-center shadow-md shadow-primary/40">
               <UtensilsCrossed className="h-4 w-4 text-white" />
             </div>
-            <span className="font-semibold text-sm text-white tracking-tight">wassup mlr</span>
+            <span className="text-base leading-none tracking-tight" style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800 }}>
+              <span className="text-white">wassup</span>{' '}
+              <span className="text-gradient-warm">mlr</span>
+            </span>
           </button>
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="sm" onClick={startNewChat} className="h-8 text-xs gap-1.5 rounded-lg text-white/80 hover:bg-white/10 hover:text-white">
