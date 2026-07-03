@@ -51,14 +51,28 @@ const formatPastPrompt = (title: string): string => {
   return t;
 };
 
-// Returns 4 quick prompts: most recent past questions first (formatted),
-// filled with pool defaults for new users with little history.
-const pickQuickPrompts = (pastTitles: string[], count = 4): string[] => {
-  const fromHistory = pastTitles.slice(0, count).map(formatPastPrompt);
-  if (fromHistory.length >= count) return fromHistory;
+const FOOD_KEYWORDS = [
+  'food', 'eat', 'restaurant', 'cafe', 'hotel', 'dine', 'dining', 'dinner', 'lunch', 'breakfast',
+  'brunch', 'snack', 'bite', 'meal', 'dish', 'cuisine', 'menu', 'cook', 'recipe', 'hungry',
+  'craving', 'drink', 'juice', 'coffee', 'tea', 'dessert', 'sweet', 'spicy', 'biryani', 'dosa',
+  'idli', 'fish', 'seafood', 'chicken', 'mutton', 'veg', 'place', 'spot', 'where', 'suggest',
+  'recommend', 'best', 'good', 'try', 'taste', 'mangalore', 'mlr', 'udupi', 'mangalorean',
+];
 
-  const pool = QUICK_PROMPT_POOL.slice(0, count - fromHistory.length).map((p) => p.text);
-  return [...fromHistory, ...pool];
+// Returns true if the session title looks like a food/restaurant-related question.
+const isFoodRelated = (title: string): boolean => {
+  const lower = title.toLowerCase();
+  return FOOD_KEYWORDS.some((k) => lower.includes(k));
+};
+
+// Returns 4 quick prompts: most recent relevant past questions first (formatted),
+// filled with pool defaults for any slots that don't have food-related history.
+const pickQuickPrompts = (pastTitles: string[], count = 4): string[] => {
+  const relevant = pastTitles.filter(isFoodRelated).slice(0, count).map(formatPastPrompt);
+  if (relevant.length >= count) return relevant;
+
+  const pool = QUICK_PROMPT_POOL.slice(0, count - relevant.length).map((p) => p.text);
+  return [...relevant, ...pool];
 };
 
 const ChatPage = () => {
