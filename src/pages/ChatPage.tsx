@@ -65,10 +65,17 @@ const isFoodRelated = (title: string): boolean => {
   return FOOD_KEYWORDS.some((k) => lower.includes(k));
 };
 
+// Returns true if the title was NOT cut off mid-sentence by the 50-char truncation.
+// Truncated titles end with "..." and form incomplete, nonsensical questions.
+const isComplete = (title: string): boolean => !title.trimEnd().endsWith('...');
+
 // Returns 4 quick prompts: most recent relevant past questions first (formatted),
 // filled with pool defaults for any slots that don't have food-related history.
 const pickQuickPrompts = (pastTitles: string[], count = 4): string[] => {
-  const relevant = pastTitles.filter(isFoodRelated).slice(0, count).map(formatPastPrompt);
+  const relevant = pastTitles
+    .filter((t) => isComplete(t) && isFoodRelated(t))
+    .slice(0, count)
+    .map(formatPastPrompt);
   if (relevant.length >= count) return relevant;
 
   const pool = QUICK_PROMPT_POOL.slice(0, count - relevant.length).map((p) => p.text);
