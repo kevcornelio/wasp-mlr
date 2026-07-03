@@ -40,16 +40,25 @@ const QUICK_PROMPT_POOL: { text: string; keywords: string[] }[] = [
   { text: "Something new I haven't tried before?", keywords: ['new', 'explore', 'try'] },
 ];
 
-// Picks a rotating set of quick prompts, favoring ones unrelated to topics
-// already covered in the user's past chat session titles.
+// Picks a rotating set of quick prompts.
+// If the user has past sessions, we surface their actual past questions
+// (session titles) so they can quickly revisit or refine them.
+// Pool suggestions fill any remaining slots for users with little history.
 const pickQuickPrompts = (pastTitles: string[], count = 4): string[] => {
+  const shuffledPast = [...pastTitles].sort(() => Math.random() - 0.5);
+  const fromHistory = shuffledPast.slice(0, count);
+
+  if (fromHistory.length >= count) return fromHistory;
+
+  // Not enough history — fill remaining slots from the pool, skipping topics
+  // the user has already explored.
   const pastText = pastTitles.join(' ').toLowerCase();
-  const unseen = QUICK_PROMPT_POOL.filter(
+  const freshPool = QUICK_PROMPT_POOL.filter(
     (p) => !p.keywords.some((k) => pastText.includes(k))
   );
-  const pool = unseen.length >= count ? unseen : QUICK_PROMPT_POOL;
-  const shuffled = [...pool].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count).map((p) => p.text);
+  const pool = freshPool.length > 0 ? freshPool : QUICK_PROMPT_POOL;
+  const shuffledPool = [...pool].sort(() => Math.random() - 0.5).map((p) => p.text);
+  return [...fromHistory, ...shuffledPool].slice(0, count);
 };
 
 const ChatPage = () => {
