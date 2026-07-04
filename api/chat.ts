@@ -8,25 +8,35 @@ const VOYAGE_API_KEY = process.env.VOYAGE_API_KEY;
 
 async function getQueryEmbedding(text: string): Promise<number[] | null> {
   if (!VOYAGE_API_KEY) return null;
-  try {
-    const res = await fetch('https://api.voyageai.com/v1/embeddings', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${VOYAGE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'voyage-3',
-        input: [text],
-        input_type: 'query',
-      }),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.data[0].embedding;
-  } catch {
-    return null;
+  // One retry on rate limit — a 429 here silently degrades RAG to the
+  // keyword fallback, which is much weaker.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch('https://api.voyageai.com/v1/embeddings', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${VOYAGE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'voyage-3',
+          input: [text],
+          input_type: 'query',
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.data[0].embedding;
+      }
+      console.error('Voyage query embedding failed:', res.status);
+      if (res.status !== 429) return null;
+      await new Promise(r => setTimeout(r, 1500));
+    } catch (err) {
+      console.error('Voyage query embedding error:', err);
+      return null;
+    }
   }
+  return null;
 }
 
 // ── Supabase helpers ─────────────────────────────────────────────────────────

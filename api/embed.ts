@@ -6,29 +6,36 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 async function getEmbedding(text: string): Promise<number[] | null> {
   if (!VOYAGE_API_KEY) return null;
-  try {
-    const res = await fetch('https://api.voyageai.com/v1/embeddings', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${VOYAGE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'voyage-3',
-        input: [text],
-        input_type: 'document',
-      }),
-    });
-    if (!res.ok) {
+  // Retry on rate limit — embed requests arrive in bursts (e.g. admin
+  // approving several posts) and a dropped embedding makes the row
+  // invisible to semantic search until manually re-embedded.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch('https://api.voyageai.com/v1/embeddings', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${VOYAGE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'voyage-3',
+          input: [text],
+          input_type: 'document',
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.data[0].embedding;
+      }
       console.error('Voyage AI error:', res.status, await res.text());
+      if (res.status !== 429) return null;
+      await new Promise(r => setTimeout(r, 2500 * (attempt + 1)));
+    } catch (err) {
+      console.error('Embedding error:', err);
       return null;
     }
-    const data = await res.json();
-    return data.data[0].embedding;
-  } catch (err) {
-    console.error('Embedding error:', err);
-    return null;
   }
+  return null;
 }
 
 async function dbPatch(table: string, id: string, body: Record<string, unknown>) {
