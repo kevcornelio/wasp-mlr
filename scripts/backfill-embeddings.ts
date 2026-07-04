@@ -135,7 +135,7 @@ async function main() {
 
   if (blogs.length > 0) {
     await processInBatches(blogs, (b) => {
-      return [b.title, b.restaurant_name, b.content?.slice(0, 1000)].filter(Boolean).join('. ');
+      return [b.title, b.restaurant_name, b.content?.slice(0, 2000)].filter(Boolean).join('. ');
     }, 'blog_posts');
   }
 

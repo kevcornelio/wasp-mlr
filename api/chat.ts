@@ -147,7 +147,7 @@ async function getRagContext(messages: Array<{ role: string; content: string }>)
 
     if (semBlogs?.length) {
       const lines = semBlogs.map(b => {
-        const excerpt = b.content.replace(/\n/g, ' ').slice(0, 220) + '…';
+        const excerpt = b.content.replace(/\n/g, ' ').slice(0, 1200) + (b.content.length > 1200 ? '…' : '');
         return `• "${b.title}"${b.restaurant_name ? ` (${b.restaurant_name})` : ''} by ${b.author_name}: ${excerpt}`;
       }).join('\n');
       contextParts.push(`📝 Food Stories:\n${lines}`);
@@ -178,6 +178,23 @@ async function getRagContext(messages: Array<{ role: string; content: string }>)
         `• ${s.restaurant_name}${s.location ? ` — ${s.location}` : ''}${s.rating ? ` ★${s.rating}` : ''}${Array.isArray(s.dishes) && s.dishes.length ? ` · Try: ${s.dishes.join(', ')}` : ''}${s.notes ? ` · "${s.notes}"` : ''}`
       ).join('\n');
       contextParts.push(`📍 Community Food Spots:\n${lines}`);
+    }
+
+    // Blogs stay available in fallback mode too — keyword match on
+    // title/restaurants/content so stories don't silently vanish when
+    // the embedding service is down.
+    if (kw) {
+      const kwEnc = encodeURIComponent(kw);
+      const blogs = await dbGet(
+        `blog_posts?select=title,content,restaurant_name,author_name&status=eq.approved&or=(title.ilike.*${kwEnc}*,restaurant_name.ilike.*${kwEnc}*,content.ilike.*${kwEnc}*)&order=created_at.desc&limit=2`
+      );
+      if (blogs?.length) {
+        const lines = blogs.map((b: any) => {
+          const excerpt = b.content.replace(/\n/g, ' ').slice(0, 1200) + (b.content.length > 1200 ? '…' : '');
+          return `• "${b.title}"${b.restaurant_name ? ` (${b.restaurant_name})` : ''} by ${b.author_name}: ${excerpt}`;
+        }).join('\n');
+        contextParts.push(`📝 Food Stories:\n${lines}`);
+      }
     }
   }
 

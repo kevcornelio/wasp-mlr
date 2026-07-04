@@ -133,8 +133,8 @@ export default async function handler(req: Request) {
 
       if (!blog) return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
 
-      // Use title + restaurant + first 1000 chars of content for embedding
-      text = [blog.title, blog.restaurant_name, blog.content?.slice(0, 1000)].filter(Boolean).join('. ');
+      // Use title + restaurant + first 2000 chars of content for embedding
+      text = [blog.title, blog.restaurant_name, blog.content?.slice(0, 2000)].filter(Boolean).join('. ');
     }
 
     if (!text) return new Response(JSON.stringify({ error: 'No text to embed' }), { status: 400 });
