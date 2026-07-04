@@ -218,10 +218,11 @@ const ChatPage = () => {
     loadBlogs();
   }, []);
 
-  // Load recent community food spots to seed quick-prompt suggestions
+  // Load the user's own food spots to seed quick-prompt suggestions
+  // (spots are private — RLS scopes reads to the user/device that added them)
   useEffect(() => {
     const loadSpots = async () => {
-      const { data } = await supabase
+      const { data } = await db
         .from('user_food_spots')
         .select('restaurant_name, dishes')
         .order('created_at', { ascending: false })
@@ -229,7 +230,7 @@ const ChatPage = () => {
       if (data) setFoodSpots(data);
     };
     loadSpots();
-  }, []);
+  }, [db]);
 
   // Load latest food photos for home-page preview
   useEffect(() => {
