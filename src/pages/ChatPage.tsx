@@ -87,25 +87,52 @@ const isSubstantial = (title: string): boolean => {
   return t.length >= 15 && t.split(/\s+/).length >= 3;
 };
 
-// Returns 4 quick prompts: most recent relevant past questions first (formatted,
-// deduplicated), filled with pool defaults for any slots that don't have
-// food-related history.
-const pickQuickPrompts = (pastTitles: string[], count = 4): string[] => {
-  const seen = new Set<string>();
-  const relevant: string[] = [];
-  for (const title of pastTitles) {
-    if (relevant.length >= count) break;
-    if (!isComplete(title) || !isSubstantial(title) || !isFoodRelated(title)) continue;
-    const formatted = formatPastPrompt(title);
-    const key = formatted.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    relevant.push(formatted);
-  }
-  if (relevant.length >= count) return relevant;
+// Turns a blog's restaurant list ("Pabbas, Machli, ...") into one question.
+const promptFromBlog = (restaurantName: string | null): string | null => {
+  const first = restaurantName?.split(',')[0]?.trim();
+  return first ? `What should I try at ${first}?` : null;
+};
 
-  const pool = QUICK_PROMPT_POOL.slice(0, count - relevant.length).map((p) => p.text);
-  return [...relevant, ...pool];
+// Turns a community food spot into a question about its signature dish.
+const promptFromSpot = (spot: { restaurant_name: string; dishes: string[] | null }): string => {
+  const dish = spot.dishes?.[0]?.trim();
+  return dish
+    ? `Where can I get good ${dish}?`
+    : `Is ${spot.restaurant_name} worth a visit?`;
+};
+
+// Builds the full rotating candidate list: past questions, blog-derived and
+// spot-derived questions round-robin interleaved (so every window of 4 is a
+// mixture of sources), padded with the built-in pool, deduplicated.
+const buildPromptCandidates = (
+  pastTitles: string[],
+  blogs: { restaurant_name: string | null }[],
+  spots: { restaurant_name: string; dishes: string[] | null }[],
+): string[] => {
+  const past = pastTitles
+    .filter((t) => isComplete(t) && isSubstantial(t) && isFoodRelated(t))
+    .slice(0, 8)
+    .map(formatPastPrompt);
+  const fromBlogs = blogs.map((b) => promptFromBlog(b.restaurant_name)).filter(Boolean) as string[];
+  const fromSpots = spots.slice(0, 8).map(promptFromSpot);
+  const pool = QUICK_PROMPT_POOL.map((p) => p.text);
+
+  const sources = [past, fromBlogs, fromSpots, pool];
+  const interleaved: string[] = [];
+  const longest = Math.max(...sources.map((s) => s.length));
+  for (let i = 0; i < longest; i++) {
+    for (const source of sources) {
+      if (i < source.length) interleaved.push(source[i]);
+    }
+  }
+
+  const seen = new Set<string>();
+  return interleaved.filter((p) => {
+    const key = p.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 };
 
 const ChatPage = () => {
@@ -130,17 +157,36 @@ const ChatPage = () => {
     created_at: string;
   }[]>([]);
   const [latestPhotos, setLatestPhotos] = useState<{ id: string; photo_url: string; caption: string | null }[]>([]);
+  const [foodSpots, setFoodSpots] = useState<{ restaurant_name: string; dishes: string[] | null }[]>([]);
+  const [promptOffset, setPromptOffset] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Use authenticated client for logged-in users, anon client otherwise
   const db = useMemo(() => (user ? supabase : getAnonSupabaseClient()), [user]);
 
-  // Rotating quick prompts — recomputed whenever session history changes,
-  // steering away from topics the user has already asked about.
-  const quickPrompts = useMemo(
-    () => pickQuickPrompts(sessions.map((s) => s.title)),
-    [sessions]
+  // Rotating quick prompts — a mixture of the user's past questions and
+  // questions generated from submitted blogs and community food spots.
+  const promptCandidates = useMemo(
+    () => buildPromptCandidates(sessions.map((s) => s.title), latestBlogs, foodSpots),
+    [sessions, latestBlogs, foodSpots]
   );
+
+  // Advance the 4-prompt window every few seconds
+  useEffect(() => {
+    if (promptCandidates.length <= 4) return;
+    const timer = setInterval(
+      () => setPromptOffset((o) => (o + 4) % promptCandidates.length),
+      9000
+    );
+    return () => clearInterval(timer);
+  }, [promptCandidates.length]);
+
+  const quickPrompts = useMemo(() => {
+    const count = Math.min(4, promptCandidates.length);
+    return Array.from({ length: count }, (_, i) =>
+      promptCandidates[(promptOffset + i) % promptCandidates.length]
+    );
+  }, [promptCandidates, promptOffset]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -170,6 +216,19 @@ const ChatPage = () => {
       if (data) setLatestBlogs(data);
     };
     loadBlogs();
+  }, []);
+
+  // Load recent community food spots to seed quick-prompt suggestions
+  useEffect(() => {
+    const loadSpots = async () => {
+      const { data } = await supabase
+        .from('user_food_spots')
+        .select('restaurant_name, dishes')
+        .order('created_at', { ascending: false })
+        .limit(8);
+      if (data) setFoodSpots(data);
+    };
+    loadSpots();
   }, []);
 
   // Load latest food photos for home-page preview
@@ -595,8 +654,9 @@ const ChatPage = () => {
               {/* RIGHT — prompts + content */}
               <div className="md:w-3/5 flex flex-col gap-5 px-8 py-12">
 
-                {/* Quick prompts */}
-                <div className="fade-up fade-up-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Quick prompts — rotating mixture of past questions, blogs, and spots */}
+                <div className="fade-up fade-up-2">
+                <div key={promptOffset} className="fade-in grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {quickPrompts.map((prompt, i) => (
                     <button
                       key={prompt}
@@ -609,6 +669,7 @@ const ChatPage = () => {
                       <span className="text-sm leading-snug">{prompt}</span>
                     </button>
                   ))}
+                </div>
                 </div>
 
                 {/* Latest blogs */}
