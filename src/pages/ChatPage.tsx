@@ -441,7 +441,7 @@ const ChatPage = () => {
 
   const sidebarNav = [
     { label: 'Chat', icon: UtensilsCrossed, path: '/chat' },
-    { label: 'Food Spots', icon: Utensils, path: '/spots' },
+    { label: 'Add Food Spot', icon: Utensils, path: '/spots' },
     { label: 'Food Photos', icon: Camera, path: '/photos' },
     { label: 'Blog', icon: BookOpen, path: '/blog' },
     { label: 'Preferences', icon: Settings, path: '/preferences' },

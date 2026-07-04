@@ -23,13 +23,18 @@ type FoodSpot = {
 };
 
 const FoodSpotsPage = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const db = useMemo(() => (user ? supabase : getAnonSupabaseClient()), [user]);
 
   const [spots, setSpots] = useState<FoodSpot[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+
+  // Sign-in only feature — redirect once the auth state has resolved
+  useEffect(() => {
+    if (!authLoading && !user) navigate('/auth');
+  }, [authLoading, user, navigate]);
 
   // Form state
   const [name, setName] = useState('');
@@ -97,6 +102,14 @@ const FoodSpotsPage = () => {
   const isOwn = (spot: FoodSpot) =>
     (user && spot.user_id === user.id) || (!user && spot.device_id === deviceId);
 
+  if (authLoading || !user) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-6">
@@ -104,7 +117,7 @@ const FoodSpotsPage = () => {
           <Button variant="ghost" size="icon" onClick={() => navigate('/chat')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-xl font-semibold text-foreground">My Food Spots</h1>
+          <h1 className="text-xl font-semibold text-foreground">Add Food Spot</h1>
         </div>
         <Button size="sm" onClick={() => setShowForm(!showForm)} className="gap-1">
           <Plus className="h-3 w-3" /> Add Spot
