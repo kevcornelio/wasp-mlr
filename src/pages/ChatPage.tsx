@@ -94,8 +94,8 @@ const promptFromBlog = (restaurantName: string | null): string | null => {
 };
 
 // Turns a community food spot into a question about its signature dish.
-const promptFromSpot = (spot: { restaurant_name: string; dishes: string[] | null }): string => {
-  const dish = spot.dishes?.[0]?.trim();
+const promptFromSpot = (spot: { restaurant_name: string; dish: string | null }): string => {
+  const dish = spot.dish?.trim();
   return dish
     ? `Where can I get good ${dish}?`
     : `Is ${spot.restaurant_name} worth a visit?`;
@@ -107,7 +107,7 @@ const promptFromSpot = (spot: { restaurant_name: string; dishes: string[] | null
 const buildPromptCandidates = (
   pastTitles: string[],
   blogs: { restaurant_name: string | null }[],
-  spots: { restaurant_name: string; dishes: string[] | null }[],
+  spots: { restaurant_name: string; dish: string | null }[],
 ): string[] => {
   const past = pastTitles
     .filter((t) => isComplete(t) && isSubstantial(t) && isFoodRelated(t))
@@ -157,7 +157,7 @@ const ChatPage = () => {
     created_at: string;
   }[]>([]);
   const [latestPhotos, setLatestPhotos] = useState<{ id: string; photo_url: string; caption: string | null }[]>([]);
-  const [foodSpots, setFoodSpots] = useState<{ restaurant_name: string; dishes: string[] | null }[]>([]);
+  const [foodSpots, setFoodSpots] = useState<{ restaurant_name: string; dish: string | null }[]>([]);
   const [promptOffset, setPromptOffset] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -218,19 +218,17 @@ const ChatPage = () => {
     loadBlogs();
   }, []);
 
-  // Load the user's own food spots to seed quick-prompt suggestions
-  // (spots are private — RLS scopes reads to the user/device that added them)
+  // Load spot data for quick-prompt suggestions. Direct table reads are
+  // RLS-scoped to the owner, so this uses a dedicated RPC that exposes only
+  // restaurant name + one dish from the whole community pool.
   useEffect(() => {
     const loadSpots = async () => {
-      const { data } = await db
-        .from('user_food_spots')
-        .select('restaurant_name, dishes')
-        .order('created_at', { ascending: false })
-        .limit(8);
+      // RPC not in generated types (matches existing `as any` pattern here)
+      const { data } = await (supabase.rpc as any)('get_spot_prompt_data', { max_rows: 8 });
       if (data) setFoodSpots(data);
     };
     loadSpots();
-  }, [db]);
+  }, []);
 
   // Load latest food photos for home-page preview
   useEffect(() => {

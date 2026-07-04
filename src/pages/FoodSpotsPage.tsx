@@ -104,7 +104,7 @@ const FoodSpotsPage = () => {
           <Button variant="ghost" size="icon" onClick={() => navigate('/chat')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-xl font-semibold text-foreground">Community Food Spots</h1>
+          <h1 className="text-xl font-semibold text-foreground">My Food Spots</h1>
         </div>
         <Button size="sm" onClick={() => setShowForm(!showForm)} className="gap-1">
           <Plus className="h-3 w-3" /> Add Spot
