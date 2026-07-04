@@ -197,6 +197,66 @@ async function getRagContext(messages: Array<{ role: string; content: string }>)
   return `\n\n━━━ Live Community Data ━━━\n${contextParts.join('\n\n')}\n━━━ End Community Data ━━━\n\nUse the above real community data to enhance your recommendations. Prioritise places and dishes mentioned there — they are real, recent, user-verified picks from Mangalore locals.`;
 }
 
+// ── Personal taste profile ───────────────────────────────────────────────────
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Builds a context block from the requesting user's own data: saved
+// preferences, places they rated through chat feedback, and spots they saved.
+// Identified by auth user_id (logged in) or device_id (anonymous) — both UUIDs.
+async function getPersonalContext(userId?: string, deviceId?: string): Promise<string> {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return '';
+
+  const id = userId && UUID_RE.test(userId) ? { col: 'user_id', val: userId }
+    : deviceId && UUID_RE.test(deviceId) ? { col: 'device_id', val: deviceId }
+    : null;
+  if (!id) return '';
+
+  const own = `${id.col}=eq.${id.val}`;
+
+  const [prefs, feedback, saved] = await Promise.all([
+    dbGet(`user_preferences?select=diet_type,spice_level,allergies,favorite_cuisines,budget_range&${own}&limit=1`),
+    dbGet(`chat_feedback?select=place_name,rating,comment&${own}&rating=not.is.null&order=created_at.desc&limit=12`),
+    dbGet(`community_recommendations?select=restaurant_name,cuisine_type,rating,notes&${own}&order=created_at.desc&limit=5`),
+  ]);
+
+  const parts: string[] = [];
+
+  const p = prefs?.[0];
+  if (p) {
+    const bits = [
+      p.diet_type && p.diet_type !== 'any' ? `diet: ${p.diet_type}` : '',
+      p.spice_level ? `spice: ${p.spice_level}` : '',
+      p.budget_range && p.budget_range !== 'any' ? `budget: ${p.budget_range}` : '',
+      Array.isArray(p.favorite_cuisines) && p.favorite_cuisines.length ? `favourite cuisines: ${p.favorite_cuisines.join(', ')}` : '',
+      Array.isArray(p.allergies) && p.allergies.length ? `ALLERGIES (must avoid): ${p.allergies.join(', ')}` : '',
+    ].filter(Boolean);
+    if (bits.length) parts.push(`Preferences — ${bits.join(' · ')}`);
+  }
+
+  if (feedback?.length) {
+    const loved = feedback.filter((f: any) => f.rating >= 4);
+    const disliked = feedback.filter((f: any) => f.rating <= 2);
+    if (loved.length) {
+      parts.push(`Places they LOVED:\n${loved.map((f: any) =>
+        `• ${f.place_name} ★${f.rating}${f.comment ? ` — "${f.comment}"` : ''}`).join('\n')}`);
+    }
+    if (disliked.length) {
+      parts.push(`Places they did NOT enjoy:\n${disliked.map((f: any) =>
+        `• ${f.place_name} ★${f.rating}${f.comment ? ` — "${f.comment}"` : ''}`).join('\n')}`);
+    }
+  }
+
+  if (saved?.length) {
+    parts.push(`Spots they saved:\n${saved.map((r: any) =>
+      `• ${r.restaurant_name}${r.cuisine_type ? ` (${r.cuisine_type})` : ''}${r.rating ? ` ★${r.rating}` : ''}${r.notes ? ` · "${r.notes}"` : ''}`).join('\n')}`);
+  }
+
+  if (parts.length === 0) return '';
+
+  return `\n\n━━━ This User's Taste Profile ━━━\n${parts.join('\n\n')}\n━━━ End Taste Profile ━━━\n\nPersonalise using the taste profile: strictly respect allergies and diet type; lean toward their spice level, budget, and favourite cuisines; reference places they loved naturally (e.g. "Since you loved the Ghee Roast at …"); avoid re-recommending places they didn't enjoy unless they ask. Do not recite the profile back to them.`;
+}
+
 // ── System prompt ────────────────────────────────────────────────────────────
 
 const SYSTEM_PROMPT = `You are "Wasp MLR" — a warm, food-obsessed advisor for Mangalore, Karnataka, India.
@@ -264,13 +324,16 @@ export default async function handler(req: Request) {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, user_id, device_id } = await req.json();
     const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
     if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is not configured');
 
-    const ragContext = await getRagContext(messages);
+    const [ragContext, personalContext] = await Promise.all([
+      getRagContext(messages),
+      getPersonalContext(user_id, device_id),
+    ]);
 
-    const enhancedSystemPrompt = SYSTEM_PROMPT + ragContext;
+    const enhancedSystemPrompt = SYSTEM_PROMPT + ragContext + personalContext;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',

@@ -245,7 +245,11 @@ const ChatPage = () => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ messages: allMessages }),
+      body: JSON.stringify({
+        messages: allMessages,
+        user_id: user?.id ?? null,
+        device_id: user ? null : getDeviceId(),
+      }),
     });
 
     if (!resp.ok || !resp.body) {
