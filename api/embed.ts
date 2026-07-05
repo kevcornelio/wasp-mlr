@@ -82,7 +82,7 @@ export default async function handler(req: Request) {
   }
 
   try {
-    const { type, id } = await req.json() as { type: 'recommendation' | 'spot' | 'blog'; id: string };
+    const { type, id } = await req.json() as { type: 'recommendation' | 'spot' | 'blog' | 'photo'; id: string };
 
     if (!type || !id) {
       return new Response(JSON.stringify({ error: 'Missing type or id' }), { status: 400 });
@@ -142,6 +142,11 @@ export default async function handler(req: Request) {
 
       // Use title + restaurant + first 2000 chars of content for embedding
       text = [blog.title, blog.restaurant_name, blog.content?.slice(0, 2000)].filter(Boolean).join('. ');
+    } else if (type === 'photo') {
+      const photo = await dbGet<{ caption?: string }>('food_photos', id);
+      if (!photo) return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+      // Only captioned photos are searchable — the caption is all the text we have
+      text = photo.caption?.trim() || null;
     }
 
     if (!text) return new Response(JSON.stringify({ error: 'No text to embed' }), { status: 400 });
@@ -154,6 +159,7 @@ export default async function handler(req: Request) {
     const table =
       type === 'spot' ? 'user_food_spots'
       : type === 'recommendation' ? 'community_recommendations'
+      : type === 'photo' ? 'food_photos'
       : 'blog_posts';
     const ok = await dbPatch(table, id, { embedding: embedding });
 

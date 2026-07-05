@@ -84,6 +84,14 @@ const PhotosPage = () => {
     if (dbError) {
       toast.error('Failed to save photo');
     } else if (data) {
+      // Fire-and-forget: make captioned photos searchable by the chat RAG
+      if ((data as FoodPhoto).caption) {
+        fetch('/api/embed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'photo', id: (data as FoodPhoto).id }),
+        }).catch(() => { /* non-critical */ });
+      }
       setPhotos(prev => [data as FoodPhoto, ...prev]);
       setFile(null);
       setPreview(null);

@@ -162,6 +162,24 @@ async function getRagContext(messages: Array<{ role: string; content: string }>)
       }).join('\n');
       contextParts.push(`📝 Food Stories:\n${lines}`);
     }
+
+    // Captioned food photos — recent dishes users actually ate and shared
+    const semPhotos = await rpc<{
+      caption: string;
+      uploader_name: string | null;
+      similarity: number;
+    }>('match_food_photos', {
+      query_embedding: embedding,
+      match_threshold: 0.2,
+      match_count: 3,
+    });
+
+    if (semPhotos?.length) {
+      const lines = semPhotos.map(p =>
+        `• "${p.caption}"${p.uploader_name ? ` — photo shared by ${p.uploader_name}` : ''}`
+      ).join('\n');
+      contextParts.push(`📸 Recently Shared Food Photos (dishes users actually ate):\n${lines}`);
+    }
   }
 
   // ── 2. Fallback: keyword search if no embeddings available yet ────────────
