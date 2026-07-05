@@ -12,12 +12,16 @@ type FoodPhoto = {
   user_id: string;
   photo_url: string;
   caption: string | null;
+  uploader_name: string | null;
   created_at: string;
 };
 
+const ADMIN_EMAIL = 'kev.cornelio@gmail.com';
+
 const PhotosPage = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   const [photos, setPhotos] = useState<FoodPhoto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,9 +74,10 @@ const PhotosPage = () => {
     const { data: urlData } = supabase.storage.from('food-photos').getPublicUrl(path);
     const photo_url = urlData.publicUrl;
 
+    const uploader_name = profile?.full_name || user.email?.split('@')[0] || null;
     const { data, error: dbError } = await supabase
       .from('food_photos')
-      .insert({ user_id: user.id, photo_url, caption: caption.trim() || null })
+      .insert({ user_id: user.id, photo_url, caption: caption.trim() || null, uploader_name })
       .select('*')
       .single();
 
@@ -192,12 +197,13 @@ const PhotosPage = () => {
                 alt={photo.caption ?? 'Food photo'}
                 className="w-full h-full object-cover"
               />
-              {photo.caption && (
-                <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-2 py-1">
+              <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-2 py-1">
+                {photo.caption && (
                   <p className="text-[10px] text-white truncate">{photo.caption}</p>
-                </div>
-              )}
-              {user && photo.user_id === user.id && (
+                )}
+                <p className="text-[9px] text-white/80 truncate">📷 {photo.uploader_name || 'Anonymous'}</p>
+              </div>
+              {user && (photo.user_id === user.id || isAdmin) && (
                 <button
                   onClick={() => handleDelete(photo)}
                   className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-black/60 rounded-full p-1 text-white hover:bg-destructive transition-all"
