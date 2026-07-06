@@ -2,10 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Camera, Loader2, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import Comments from '@/components/Comments';
 
 type FoodPhoto = {
   id: string;
@@ -25,6 +27,7 @@ const PhotosPage = () => {
 
   const [photos, setPhotos] = useState<FoodPhoto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPhoto, setSelectedPhoto] = useState<FoodPhoto | null>(null);
 
   // Upload state
   const [showUpload, setShowUpload] = useState(false);
@@ -200,12 +203,14 @@ const PhotosPage = () => {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {photos.map(photo => (
             <div key={photo.id} className="group relative rounded-xl overflow-hidden bg-card border border-border aspect-square">
-              <img
-                src={photo.photo_url}
-                alt={photo.caption ?? 'Food photo'}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-2 py-1">
+              <button className="w-full h-full" onClick={() => setSelectedPhoto(photo)}>
+                <img
+                  src={photo.photo_url}
+                  alt={photo.caption ?? 'Food photo'}
+                  className="w-full h-full object-cover"
+                />
+              </button>
+              <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-2 py-1 pointer-events-none">
                 {photo.caption && (
                   <p className="text-[10px] text-white truncate">{photo.caption}</p>
                 )}
@@ -223,6 +228,34 @@ const PhotosPage = () => {
           ))}
         </div>
       )}
+
+      {/* Photo detail + comments */}
+      <Dialog open={!!selectedPhoto} onOpenChange={(open) => { if (!open) setSelectedPhoto(null); }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          {selectedPhoto && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-base">
+                  {selectedPhoto.caption || 'Food photo'}
+                </DialogTitle>
+              </DialogHeader>
+              <img
+                src={selectedPhoto.photo_url}
+                alt={selectedPhoto.caption ?? 'Food photo'}
+                className="w-full rounded-xl object-contain max-h-[50vh] bg-black/5"
+              />
+              <p className="text-xs text-muted-foreground">
+                📷 Shared by <span className="font-medium text-foreground">{selectedPhoto.uploader_name || 'Anonymous'}</span>
+                {' · '}
+                {new Date(selectedPhoto.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
+              <div className="pt-2 border-t border-border">
+                <Comments photoId={selectedPhoto.id} />
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

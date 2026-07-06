@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, MapPin, Calendar, User } from 'lucide-react';
+import Comments from '@/components/Comments';
 
 interface Blog {
   id: string;
@@ -112,6 +113,11 @@ export default function BlogPostPage() {
         {/* Body */}
         <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none text-foreground leading-relaxed whitespace-pre-wrap">
           {blog.content}
+        </div>
+
+        {/* Comments */}
+        <div className="mt-10 pt-6 border-t border-border">
+          <Comments blogPostId={blog.id} />
         </div>
 
         {/* Footer */}
