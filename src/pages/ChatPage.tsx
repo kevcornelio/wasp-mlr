@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Send, UtensilsCrossed, MapPin, Loader2, History, Plus, LogOut, Trash2, Settings, Utensils, Heart, BookOpen, ChevronRight, Calendar, Camera } from 'lucide-react';
+import { Send, UtensilsCrossed, MapPin, Loader2, History, Plus, LogOut, Trash2, Settings, Utensils, Heart, BookOpen, ChevronRight, Calendar, Camera, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
@@ -158,6 +158,8 @@ const ChatPage = () => {
   }[]>([]);
   const [latestPhotos, setLatestPhotos] = useState<{ id: string; photo_url: string; caption: string | null }[]>([]);
   const [foodSpots, setFoodSpots] = useState<{ restaurant_name: string; dish: string | null }[]>([]);
+  // Like/comment counts for home-page blog cards and photo tiles, keyed by row id
+  const [engagement, setEngagement] = useState<Record<string, { likes: number; comments: number }>>({});
   const [promptOffset, setPromptOffset] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -229,6 +231,41 @@ const ChatPage = () => {
     };
     loadSpots();
   }, []);
+
+  // Load like/comment counts for the previewed blogs and photos
+  useEffect(() => {
+    const blogIds = latestBlogs.map(b => b.id);
+    const photoIds = latestPhotos.map(p => p.id);
+    if (blogIds.length === 0 && photoIds.length === 0) return;
+
+    const countBy = (rows: Record<string, string | null>[] | null, col: string) => {
+      const map: Record<string, number> = {};
+      for (const row of rows ?? []) {
+        const id = row[col];
+        if (id) map[id] = (map[id] ?? 0) + 1;
+      }
+      return map;
+    };
+
+    const load = async () => {
+      // likes/comments tables are not in the generated Supabase types yet
+      const sb = supabase as any;
+      const [blogLikes, photoLikes, blogComments, photoComments] = await Promise.all([
+        blogIds.length ? sb.from('likes').select('blog_post_id').in('blog_post_id', blogIds) : { data: [] },
+        photoIds.length ? sb.from('likes').select('photo_id').in('photo_id', photoIds) : { data: [] },
+        blogIds.length ? sb.from('comments').select('blog_post_id').in('blog_post_id', blogIds) : { data: [] },
+        photoIds.length ? sb.from('comments').select('photo_id').in('photo_id', photoIds) : { data: [] },
+      ]);
+      const likeMap = { ...countBy(blogLikes.data, 'blog_post_id'), ...countBy(photoLikes.data, 'photo_id') };
+      const commentMap = { ...countBy(blogComments.data, 'blog_post_id'), ...countBy(photoComments.data, 'photo_id') };
+      const merged: Record<string, { likes: number; comments: number }> = {};
+      for (const id of [...blogIds, ...photoIds]) {
+        merged[id] = { likes: likeMap[id] ?? 0, comments: commentMap[id] ?? 0 };
+      }
+      setEngagement(merged);
+    };
+    load();
+  }, [latestBlogs, latestPhotos]);
 
   // Load latest food photos for home-page preview
   useEffect(() => {
@@ -703,6 +740,14 @@ const ChatPage = () => {
                               {new Date(blog.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                             </span>
                             <span className="text-[10px] text-white/50">by {blog.author_name}</span>
+                            <span className="inline-flex items-center gap-1.5 text-[10px] text-white/50 ml-auto">
+                              <span className="inline-flex items-center gap-0.5">
+                                <Heart className="h-2.5 w-2.5" />{engagement[blog.id]?.likes ?? 0}
+                              </span>
+                              <span className="inline-flex items-center gap-0.5">
+                                <MessageSquare className="h-2.5 w-2.5" />{engagement[blog.id]?.comments ?? 0}
+                              </span>
+                            </span>
                           </div>
                         </button>
                       ))}
@@ -730,6 +775,20 @@ const ChatPage = () => {
                           className="group relative aspect-square rounded-xl overflow-hidden border border-white/20 hover:border-primary/60 hover:shadow-lg hover:shadow-primary/20 transition-all"
                         >
                           <img src={photo.photo_url} alt={photo.caption ?? 'Food photo'} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                          {((engagement[photo.id]?.likes ?? 0) > 0 || (engagement[photo.id]?.comments ?? 0) > 0) && (
+                            <div className="absolute top-1 right-1 flex items-center gap-1 bg-black/60 rounded-full px-1.5 py-0.5 text-[9px] text-white">
+                              {(engagement[photo.id]?.likes ?? 0) > 0 && (
+                                <span className="inline-flex items-center gap-0.5">
+                                  <Heart className="h-2.5 w-2.5 fill-white" />{engagement[photo.id].likes}
+                                </span>
+                              )}
+                              {(engagement[photo.id]?.comments ?? 0) > 0 && (
+                                <span className="inline-flex items-center gap-0.5">
+                                  <MessageSquare className="h-2.5 w-2.5" />{engagement[photo.id].comments}
+                                </span>
+                              )}
+                            </div>
+                          )}
                           {photo.caption && (
                             <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-1.5 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <p className="text-[9px] text-white truncate">{photo.caption}</p>
