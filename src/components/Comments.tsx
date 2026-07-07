@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import LikeButton from '@/components/LikeButton';
 
 const ADMIN_EMAIL = 'kev.cornelio@gmail.com';
 
@@ -94,14 +95,17 @@ const Comments = ({ blogPostId, photoId }: Props) => {
                     {new Date(c.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                   </span>
                 </div>
-                {user && (c.user_id === user.id || isAdmin) && (
-                  <button
-                    onClick={() => remove(c.id)}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-destructive transition-all shrink-0"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                )}
+                <div className="flex items-center gap-1 shrink-0">
+                  <LikeButton commentId={c.id} />
+                  {user && (c.user_id === user.id || isAdmin) && (
+                    <button
+                      onClick={() => remove(c.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-destructive transition-all"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
               </div>
               <p className="text-sm text-foreground mt-1 whitespace-pre-wrap break-words">{c.content}</p>
             </div>

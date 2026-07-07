@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import Comments from '@/components/Comments';
+import LikeButton from '@/components/LikeButton';
 
 type FoodPhoto = {
   id: string;
@@ -244,11 +245,14 @@ const PhotosPage = () => {
                 alt={selectedPhoto.caption ?? 'Food photo'}
                 className="w-full rounded-xl object-contain max-h-[50vh] bg-black/5"
               />
-              <p className="text-xs text-muted-foreground">
-                📷 Shared by <span className="font-medium text-foreground">{selectedPhoto.uploader_name || 'Anonymous'}</span>
-                {' · '}
-                {new Date(selectedPhoto.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs text-muted-foreground">
+                  📷 Shared by <span className="font-medium text-foreground">{selectedPhoto.uploader_name || 'Anonymous'}</span>
+                  {' · '}
+                  {new Date(selectedPhoto.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+                <LikeButton photoId={selectedPhoto.id} />
+              </div>
               <div className="pt-2 border-t border-border">
                 <Comments photoId={selectedPhoto.id} />
               </div>

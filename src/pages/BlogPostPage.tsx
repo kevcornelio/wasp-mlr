@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, MapPin, Calendar, User } from 'lucide-react';
 import Comments from '@/components/Comments';
+import LikeButton from '@/components/LikeButton';
 
 interface Blog {
   id: string;
@@ -108,6 +109,7 @@ export default function BlogPostPage() {
               year: 'numeric',
             })}
           </span>
+          <LikeButton blogPostId={blog.id} className="ml-auto" />
         </div>
 
         {/* Body */}
