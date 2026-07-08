@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { MessageSquare, Users, Star, TrendingUp, Heart, ArrowLeft, RefreshCw, BookOpen, CheckCircle, XCircle, Clock, Trash2, MapPin } from 'lucide-react';
+import { isAdminEmail } from '@/lib/admin';
 
 interface PendingBlog {
   id: string;
@@ -28,9 +29,6 @@ interface FoodSpot {
   created_at: string;
   submitted_by: string;
 }
-
-// 🔒 Admin access restricted to this email
-const ADMIN_EMAIL = 'kev.cornelio@gmail.com';
 
 interface Stats {
   totalSessions: number;
@@ -64,7 +62,7 @@ export default function AdminPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletingSpotId, setDeletingSpotId] = useState<string | null>(null);
 
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = isAdminEmail(user?.email);
 
   const fetchStats = async () => {
     setFetching(true);

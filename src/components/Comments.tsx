@@ -6,8 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import LikeButton from '@/components/LikeButton';
-
-const ADMIN_EMAIL = 'kev.cornelio@gmail.com';
+import { isAdminEmail } from '@/lib/admin';
 
 type Comment = {
   id: string;
@@ -27,7 +26,7 @@ const commentsTable = () => (supabase as any).from('comments');
 
 const Comments = ({ blogPostId, photoId }: Props) => {
   const { user, profile } = useAuth();
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = isAdminEmail(user?.email);
 
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);

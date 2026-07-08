@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import Comments from '@/components/Comments';
 import LikeButton from '@/components/LikeButton';
+import { isAdminEmail } from '@/lib/admin';
 
 type FoodPhoto = {
   id: string;
@@ -19,12 +20,10 @@ type FoodPhoto = {
   created_at: string;
 };
 
-const ADMIN_EMAIL = 'kev.cornelio@gmail.com';
-
 const PhotosPage = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = isAdminEmail(user?.email);
 
   const [photos, setPhotos] = useState<FoodPhoto[]>([]);
   const [loading, setLoading] = useState(true);
