@@ -70,7 +70,7 @@ export default function BlogEditorPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="dark min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4 px-6 max-w-sm">
           <CheckCircle className="h-14 w-14 text-green-500 mx-auto" />
           <h2 className="text-xl font-bold text-foreground" style={{ fontFamily: "'Syne', sans-serif" }}>
@@ -99,7 +99,7 @@ export default function BlogEditorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="dark min-h-screen bg-background">
       {/* Header */}
       <div className="border-b border-border bg-card sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">

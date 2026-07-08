@@ -140,7 +140,7 @@ export default function SaveRecommendationModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="dark max-w-lg">
         <DialogHeader>
           <DialogTitle>Save This Recommendation 🍽️</DialogTitle>
           <DialogDescription>

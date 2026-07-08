@@ -73,13 +73,14 @@ const PreferencesPage = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="dark flex items-center justify-center h-screen bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
+    <div className="dark min-h-screen bg-background">
     <div className="max-w-2xl mx-auto px-4 py-6">
       <div className="flex items-center gap-3 mb-6">
         <Button variant="ghost" size="icon" onClick={() => navigate('/chat')}>
@@ -148,6 +149,7 @@ const PreferencesPage = () => {
           Save Preferences
         </Button>
       </div>
+    </div>
     </div>
   );
 };

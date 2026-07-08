@@ -43,7 +43,7 @@ export default function BlogPostPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
+      <div className="dark flex items-center justify-center min-h-screen bg-background">
         <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -51,7 +51,7 @@ export default function BlogPostPage() {
 
   if (notFound || !blog) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background gap-3">
+      <div className="dark flex flex-col items-center justify-center min-h-screen bg-background gap-3">
         <div className="text-4xl">🍛</div>
         <h2 className="font-semibold text-foreground">Blog not found</h2>
         <button
@@ -65,7 +65,7 @@ export default function BlogPostPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="dark min-h-screen bg-background">
       {/* Header */}
       <div className="border-b border-border bg-card sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">

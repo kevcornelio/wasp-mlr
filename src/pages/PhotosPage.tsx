@@ -128,6 +128,7 @@ const PhotosPage = () => {
   };
 
   return (
+    <div className="dark min-h-screen bg-background">
     <div className="max-w-2xl mx-auto px-4 py-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
@@ -234,7 +235,7 @@ const PhotosPage = () => {
 
       {/* Photo detail + comments */}
       <Dialog open={!!selectedPhoto} onOpenChange={(open) => { if (!open) setSelectedPhoto(null); }}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="dark max-w-lg max-h-[90vh] overflow-y-auto">
           {selectedPhoto && (
             <>
               <DialogHeader>
@@ -262,6 +263,7 @@ const PhotosPage = () => {
           )}
         </DialogContent>
       </Dialog>
+    </div>
     </div>
   );
 };

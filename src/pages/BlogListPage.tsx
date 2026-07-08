@@ -40,7 +40,7 @@ export default function BlogListPage() {
     text.length > max ? text.slice(0, max).trimEnd() + '…' : text;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="dark min-h-screen bg-background">
       {/* Header */}
       <div className="border-b border-border bg-card sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
