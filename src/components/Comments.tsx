@@ -61,6 +61,12 @@ const Comments = ({ blogPostId, photoId }: Props) => {
     } else if (data) {
       setComments(prev => [...prev, data as Comment]);
       setText('');
+      // Fire-and-forget: email the content owner about the new comment
+      fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'comment', comment_id: (data as Comment).id }),
+      }).catch(() => { /* non-critical */ });
     }
     setSubmitting(false);
   };

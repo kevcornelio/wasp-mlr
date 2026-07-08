@@ -54,6 +54,18 @@ const LikeButton = ({ blogPostId, photoId, commentId, className = '' }: Props) =
       setLiked(wasLiked);
       setCount(c => c + (wasLiked ? 1 : -1));
       toast.error('Something went wrong');
+    } else if (!wasLiked && (blogPostId || photoId)) {
+      // Fire-and-forget: email the owner (server dedupes repeat likes)
+      fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'like',
+          target: blogPostId ? 'blog' : 'photo',
+          target_id: targetId,
+          actor_id: user.id,
+        }),
+      }).catch(() => { /* non-critical */ });
     }
     setBusy(false);
   };
