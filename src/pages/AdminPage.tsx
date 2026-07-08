@@ -205,13 +205,14 @@ export default function AdminPage() {
           const blog_count = blogCounts.get(p.id) || 0;
           const spot_count = spotCounts.get(p.id) || 0;
           const photo_count = photoCounts.get(p.id) || 0;
+          const chat_count = chatCountMap.get(p.id) || 0;
           return {
             ...p,
-            chat_count: chatCountMap.get(p.id) || 0,
+            chat_count,
             blog_count,
             spot_count,
             photo_count,
-            contribution_score: contributionScore(blog_count, spot_count, photo_count),
+            contribution_score: contributionScore(blog_count, spot_count, photo_count, chat_count),
           };
         })
         .sort((a, b) => b.contribution_score - a.contribution_score

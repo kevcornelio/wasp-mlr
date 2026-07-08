@@ -1,6 +1,7 @@
 // Food-themed contribution levels. Score = approved blogs ×15 + food spots ×3
-// + photos ×1. Blogs are weighted far above the rest — they take real effort
-// and feed the chat RAG. This is the single source of truth for the weights.
+// + photos ×1 + chat sessions ×1. Blogs are weighted far above the rest —
+// they take real effort and feed the chat RAG. This is the single source of
+// truth for the weights.
 
 export type FoodLevel = { name: string; emoji: string; min: number };
 
@@ -13,8 +14,8 @@ export const FOOD_LEVELS: FoodLevel[] = [
   { name: 'Food Legend', emoji: '👑', min: 100 },
 ];
 
-export const contributionScore = (blogs: number, spots: number, photos: number): number =>
-  blogs * 15 + spots * 3 + photos;
+export const contributionScore = (blogs: number, spots: number, photos: number, chats = 0): number =>
+  blogs * 15 + spots * 3 + photos + chats;
 
 export const getLevel = (score: number): FoodLevel =>
   [...FOOD_LEVELS].reverse().find(l => score >= l.min) ?? FOOD_LEVELS[0];

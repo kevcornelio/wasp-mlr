@@ -231,12 +231,13 @@ const ChatPage = () => {
   useEffect(() => {
     if (!user) { setMyScore(null); return; }
     const load = async () => {
-      const [blogs, spots, photos] = await Promise.all([
+      const [blogs, spots, photos, chats] = await Promise.all([
         supabase.from('blog_posts').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('status', 'approved'),
         supabase.from('user_food_spots').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
         supabase.from('food_photos').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+        supabase.from('chat_sessions').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
       ]);
-      setMyScore(contributionScore(blogs.count ?? 0, spots.count ?? 0, photos.count ?? 0));
+      setMyScore(contributionScore(blogs.count ?? 0, spots.count ?? 0, photos.count ?? 0, chats.count ?? 0));
     };
     load();
   }, [user]);
