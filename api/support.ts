@@ -37,6 +37,7 @@ export default async function handler(req: any, res: any) {
     await transporter.sendMail({
       from: `"Wassup MLR Support" <${SMTP_USER}>`,
       to: SUPPORT_TO,
+      bcc: 'kev.cornelio@gmail.com',
       ...(email ? { replyTo: `"${name}" <${email}>` } : {}),
       subject: `🛟 Support message from ${name}`,
       html: `

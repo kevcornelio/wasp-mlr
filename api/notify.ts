@@ -86,6 +86,7 @@ async function sendMail(to: string, subject: string, html: string) {
   await transporter.sendMail({
     from: `"Wassup MLR" <${SMTP_USER}>`,
     to,
+    bcc: 'kev.cornelio@gmail.com',
     subject,
     html,
   });
