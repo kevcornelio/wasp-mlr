@@ -1,6 +1,8 @@
 // One-time welcome email to registered users, from the admin mailbox.
-// Two modes:
+// Modes:
 //   { mode: "test" }  — sends the template to the admin's own inbox only.
+//   { mode: "user", email } — welcomes a single new signup (fired from the
+//     signup flow); deduped per user so repeat calls cannot spam anyone.
 //   { mode: "send", confirm: "SEND_WELCOME_TO_ALL" } — sends to every
 //     profile, at most once per user ever (deduped via notification_log,
 //     key welcome:<user_id>), so repeat calls cannot spam anyone.
@@ -92,6 +94,32 @@ export default async function handler(req: any, res: any) {
         html: welcomeHtml('Kevin'),
       });
       return res.status(200).json({ sent: true, to: TEST_RECIPIENT });
+    }
+
+    if (mode === 'user') {
+      const { email } = req.body ?? {};
+      if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({ error: 'Bad email' });
+      }
+      if (!SUPABASE_URL || !SUPABASE_KEY) return res.status(500).json({ error: 'DB not configured' });
+
+      const profRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/profiles?email=eq.${encodeURIComponent(email)}&select=id,email,full_name&limit=1`,
+        { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+      );
+      const profile = (await profRes.json())?.[0];
+      if (!profile?.email) return res.status(404).json({ error: 'Not found' });
+      if (!await claimDedupeKey(`welcome:${profile.id}`)) return res.status(200).json({ skipped: true });
+
+      const firstName = profile.full_name?.trim().split(/\s+/)[0] || null;
+      await transporter.sendMail({
+        from: `"Wassup MLR" <${SMTP_USER}>`,
+        to: profile.email,
+        bcc: 'kev.cornelio@gmail.com',
+        subject: SUBJECT,
+        html: welcomeHtml(firstName),
+      });
+      return res.status(200).json({ sent: true });
     }
 
     if (mode === 'send') {

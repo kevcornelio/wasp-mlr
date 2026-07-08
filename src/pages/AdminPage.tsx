@@ -2,8 +2,13 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { MessageSquare, Users, Star, TrendingUp, Heart, ArrowLeft, RefreshCw, BookOpen, CheckCircle, XCircle, Clock, Trash2, MapPin } from 'lucide-react';
+import { MessageSquare, Users, Star, TrendingUp, Heart, ArrowLeft, RefreshCw, BookOpen, CheckCircle, XCircle, Clock, Trash2, MapPin, Mail, Loader2, Send } from 'lucide-react';
 import { isAdminEmail } from '@/lib/admin';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
 
 interface PendingBlog {
   id: string;
@@ -61,6 +66,44 @@ export default function AdminPage() {
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletingSpotId, setDeletingSpotId] = useState<string | null>(null);
+
+  // Compose-mail dialog state
+  const [mailTo, setMailTo] = useState<UserProfile | null>(null);
+  const [mailSubject, setMailSubject] = useState('');
+  const [mailBody, setMailBody] = useState('');
+  const [mailSending, setMailSending] = useState(false);
+
+  const sendMailToUser = async () => {
+    if (!mailTo || !mailSubject.trim() || mailBody.trim().length < 5) {
+      toast.error('Subject and a short message are required');
+      return;
+    }
+    setMailSending(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch('/api/admin-mail', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({
+          to_user_id: mailTo.id,
+          subject: mailSubject.trim(),
+          message: mailBody.trim(),
+        }),
+      });
+      if (!resp.ok) throw new Error('send failed');
+      toast.success(`Email sent to ${mailTo.full_name || mailTo.email}`);
+      setMailTo(null);
+      setMailSubject('');
+      setMailBody('');
+    } catch {
+      toast.error('Could not send the email');
+    } finally {
+      setMailSending(false);
+    }
+  };
 
   const isAdmin = isAdminEmail(user?.email);
 
@@ -400,6 +443,13 @@ export default function AdminPage() {
                     <p className="text-xs text-muted-foreground">
                       {new Date(u.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
+                    <button
+                      onClick={() => setMailTo(u)}
+                      title={`Email ${u.full_name || u.email}`}
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                    >
+                      <Mail className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -569,6 +619,47 @@ export default function AdminPage() {
           🔒 Admin only • Stats pulled from Supabase in real-time
         </p>
       </div>
+
+      {/* Compose mail to user */}
+      <Dialog open={!!mailTo} onOpenChange={(open) => { if (!open) setMailTo(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-primary" /> Email {mailTo?.full_name || mailTo?.email}
+            </DialogTitle>
+            <DialogDescription>
+              Sent from admin@wasp-mlr.com in the Wassup MLR branded template, greeting them by first name.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Subject</label>
+              <Input
+                value={mailSubject}
+                onChange={e => setMailSubject(e.target.value)}
+                placeholder="e.g. Your blog is now live! 🎉"
+                maxLength={200}
+                disabled={mailSending}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Message</label>
+              <Textarea
+                value={mailBody}
+                onChange={e => setMailBody(e.target.value)}
+                placeholder={"Write your message… line breaks are kept.\n\nThe greeting (Hey <name>!) and sign-off are added automatically."}
+                className="min-h-[160px] resize-none"
+                maxLength={5000}
+                disabled={mailSending}
+              />
+            </div>
+            <Button onClick={sendMailToUser} disabled={mailSending || !mailSubject.trim() || !mailBody.trim()} className="w-full gap-2">
+              {mailSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Send email
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

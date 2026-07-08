@@ -28,6 +28,12 @@ const AuthPage = () => {
         if (!fullName.trim()) { setError('Full name is required'); return; }
         const { error } = await signUp(email, password, fullName);
         if (error) { setError(error); return; }
+        // Fire-and-forget: welcome email (server dedupes, one per user ever)
+        fetch('/api/welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'user', email }),
+        }).catch(() => { /* non-critical */ });
       }
       navigate('/chat');
     } finally {
