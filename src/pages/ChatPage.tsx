@@ -10,6 +10,8 @@ import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import ChatFeedback from '@/components/ChatFeedback';
 import SaveRecommendationModal from '@/components/SaveRecommendationModal';
+import SupportModal from '@/components/SupportModal';
+import { LifeBuoy } from 'lucide-react';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
@@ -147,6 +149,7 @@ const ChatPage = () => {
   const [showFeedback, setShowFeedback] = useState(false);
   const [extractedPlaces, setExtractedPlaces] = useState<string[]>([]);
   const [saveRecommendationOpen, setSaveRecommendationOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
   const [selectedRestaurantForSave, setSelectedRestaurantForSave] = useState('');
   const [latestBlogs, setLatestBlogs] = useState<{
     id: string;
@@ -566,14 +569,15 @@ const ChatPage = () => {
           )}
         </div>
 
-        {/* Support contact */}
-        <div className="px-5 py-2 border-t border-white/10">
-          <a
-            href="mailto:admin@wasp-mlr.com"
-            className="text-[11px] text-white/40 hover:text-orange-300 transition-colors"
+        {/* Contact support — prominent */}
+        <div className="px-2 py-2 border-t border-white/10">
+          <button
+            onClick={() => setSupportOpen(true)}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold text-orange-200 bg-primary/15 border border-primary/30 hover:bg-primary/25 hover:border-primary/50 transition-all"
           >
-            Support: admin@wasp-mlr.com
-          </a>
+            <LifeBuoy className="h-4 w-4 shrink-0" />
+            Contact Support
+          </button>
         </div>
 
         {/* Sign in / out */}
@@ -696,7 +700,10 @@ const ChatPage = () => {
                   Tell me your mood, who you're with, or what you're craving. I'll find the perfect dish and spot in Mangalore.
                 </p>
                 <p className="fade-up fade-up-3 md:hidden text-xs text-white/40">
-                  Need help? <a href="mailto:admin@wasp-mlr.com" className="text-orange-300 hover:underline">admin@wasp-mlr.com</a>
+                  Need help?{' '}
+                  <button onClick={() => setSupportOpen(true)} className="text-orange-300 hover:underline">
+                    Contact support
+                  </button>
                 </p>
               </div>
 
@@ -905,6 +912,9 @@ const ChatPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Support Modal */}
+      <SupportModal open={supportOpen} onOpenChange={setSupportOpen} />
 
       {/* Save Recommendation Modal */}
       <SaveRecommendationModal
