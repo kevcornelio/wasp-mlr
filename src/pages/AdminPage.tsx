@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { MessageSquare, Users, Star, TrendingUp, Heart, ArrowLeft, RefreshCw, BookOpen, CheckCircle, XCircle, Clock, Trash2, MapPin, Mail, Loader2, Send } from 'lucide-react';
 import { isAdminEmail } from '@/lib/admin';
-import { getLevel } from '@/lib/levels';
+import { getLevel, contributionScore } from '@/lib/levels';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,7 +55,7 @@ interface UserProfile {
   blog_count: number;
   spot_count: number;
   photo_count: number;
-  // blogs ×5, spots ×3, photos ×1
+  // weights defined in src/lib/levels.ts
   contribution_score: number;
 }
 
@@ -200,7 +200,6 @@ export default function AdminPage() {
       const photoCounts = countMap(photoAuthorsResult.data);
 
       // Build profiles list with counts, ranked by weighted contribution
-      // (blogs ×5, spots ×3, photos ×1)
       const profilesWithCounts: UserProfile[] = (profilesResult.data || [])
         .map(p => {
           const blog_count = blogCounts.get(p.id) || 0;
@@ -212,7 +211,7 @@ export default function AdminPage() {
             blog_count,
             spot_count,
             photo_count,
-            contribution_score: blog_count * 5 + spot_count * 3 + photo_count,
+            contribution_score: contributionScore(blog_count, spot_count, photo_count),
           };
         })
         .sort((a, b) => b.contribution_score - a.contribution_score
