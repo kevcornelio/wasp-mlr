@@ -11,7 +11,8 @@ import ReactMarkdown from 'react-markdown';
 import ChatFeedback from '@/components/ChatFeedback';
 import SaveRecommendationModal from '@/components/SaveRecommendationModal';
 import SupportModal from '@/components/SupportModal';
-import { LifeBuoy } from 'lucide-react';
+import { LifeBuoy, ShieldCheck } from 'lucide-react';
+import { isAdminEmail } from '@/lib/admin';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
@@ -485,6 +486,7 @@ const ChatPage = () => {
     { label: 'Food Photos', icon: Camera, path: '/photos' },
     { label: 'Blog', icon: BookOpen, path: '/blog' },
     { label: 'Preferences', icon: Settings, path: '/preferences' },
+    ...(isAdminEmail(user?.email) ? [{ label: 'Admin', icon: ShieldCheck, path: '/admin' }] : []),
   ];
 
   return (

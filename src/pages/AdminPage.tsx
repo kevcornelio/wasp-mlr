@@ -266,7 +266,7 @@ export default function AdminPage() {
 
   if (loading || fetching) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
+      <div className="dark flex items-center justify-center min-h-screen bg-background">
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           <p className="text-sm text-muted-foreground">Loading dashboard...</p>
@@ -283,33 +283,33 @@ export default function AdminPage() {
       value: stats?.totalSessions.toLocaleString() || '0',
       icon: MessageSquare,
       color: 'text-blue-500',
-      bg: 'bg-blue-50',
+      bg: 'bg-blue-500/15',
     },
     {
       label: 'Total Messages',
       value: stats?.totalMessages.toLocaleString() || '0',
       icon: TrendingUp,
       color: 'text-green-500',
-      bg: 'bg-green-50',
+      bg: 'bg-green-500/15',
     },
     {
       label: 'Community Saves',
       value: stats?.totalRecommendations.toLocaleString() || '0',
       icon: Heart,
       color: 'text-rose-500',
-      bg: 'bg-rose-50',
+      bg: 'bg-rose-500/15',
     },
     {
       label: 'Avg Rating',
       value: stats?.avgRating ? `${stats.avgRating.toFixed(1)} ★` : 'N/A',
       icon: Star,
       color: 'text-amber-500',
-      bg: 'bg-amber-50',
+      bg: 'bg-amber-500/15',
     },
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="dark min-h-screen bg-background">
       {/* Header */}
       <div className="border-b border-border bg-card sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -445,10 +445,10 @@ export default function AdminPage() {
                     </p>
                     <button
                       onClick={() => setMailTo(u)}
-                      title={`Email ${u.full_name || u.email}`}
-                      className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-primary border border-primary/40 hover:bg-primary/15 transition-colors"
                     >
-                      <Mail className="h-4 w-4" />
+                      <Mail className="h-3.5 w-3.5" />
+                      Email
                     </button>
                   </div>
                 </div>
@@ -465,7 +465,7 @@ export default function AdminPage() {
               <h2 className="font-semibold text-sm text-foreground">Blog Approval Queue</h2>
             </div>
             {pendingBlogs.length > 0 && (
-              <span className="flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+              <span className="flex items-center gap-1 text-xs font-medium text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded-full">
                 <Clock className="h-3 w-3" />
                 {pendingBlogs.length} pending
               </span>
@@ -543,8 +543,8 @@ export default function AdminPage() {
                       <span className="font-medium text-sm text-foreground truncate max-w-[280px]">{blog.title}</span>
                       <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
                         blog.status === 'approved'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-red-100 text-red-600'
+                          ? 'bg-green-500/15 text-green-400'
+                          : 'bg-red-500/15 text-red-400'
                       }`}>
                         {blog.status}
                       </span>
