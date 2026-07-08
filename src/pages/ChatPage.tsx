@@ -13,6 +13,7 @@ import SaveRecommendationModal from '@/components/SaveRecommendationModal';
 import SupportModal from '@/components/SupportModal';
 import { LifeBuoy, ShieldCheck } from 'lucide-react';
 import { isAdminEmail } from '@/lib/admin';
+import { contributionScore, getLevel, getNextLevel } from '@/lib/levels';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
@@ -151,6 +152,8 @@ const ChatPage = () => {
   const [extractedPlaces, setExtractedPlaces] = useState<string[]>([]);
   const [saveRecommendationOpen, setSaveRecommendationOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
+  // Signed-in user's contribution score, for their food level
+  const [myScore, setMyScore] = useState<number | null>(null);
   const [selectedRestaurantForSave, setSelectedRestaurantForSave] = useState('');
   const [latestBlogs, setLatestBlogs] = useState<{
     id: string;
@@ -223,6 +226,23 @@ const ChatPage = () => {
     };
     loadBlogs();
   }, []);
+
+  // Compute the signed-in user's contribution score for their food level
+  useEffect(() => {
+    if (!user) { setMyScore(null); return; }
+    const load = async () => {
+      const [blogs, spots, photos] = await Promise.all([
+        supabase.from('blog_posts').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('status', 'approved'),
+        supabase.from('user_food_spots').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+        supabase.from('food_photos').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+      ]);
+      setMyScore(contributionScore(blogs.count ?? 0, spots.count ?? 0, photos.count ?? 0));
+    };
+    load();
+  }, [user]);
+
+  const myLevel = myScore !== null ? getLevel(myScore) : null;
+  const nextLevel = myScore !== null ? getNextLevel(myScore) : null;
 
   // Load spot data for quick-prompt suggestions. Direct table reads are
   // RLS-scoped to the owner, so this uses a dedicated RPC that exposes only
@@ -510,6 +530,11 @@ const ChatPage = () => {
             {user && firstName && (
               <p className="text-[11px] text-white/50 leading-none mt-0.5">Hey {firstName}!</p>
             )}
+            {myLevel && (
+              <p className="text-[10px] text-orange-300 leading-none mt-1" title={`Contribution score: ${myScore}`}>
+                {myLevel.emoji} {myLevel.name}
+              </p>
+            )}
           </div>
         </button>
 
@@ -686,11 +711,24 @@ const ChatPage = () => {
                 <span aria-hidden className="hidden md:block absolute top-1/2 right-20 text-4xl float-slower select-none drop-shadow-sm">🦐</span>
                 <span aria-hidden className="hidden md:block absolute bottom-24 left-12 text-4xl float-slow select-none drop-shadow-sm" style={{ animationDelay: '1.5s' }}>🥘</span>
 
-                <div className="fade-up inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-orange-200 text-xs font-medium w-fit backdrop-blur-md">
-                  <span className="relative flex h-2 w-2">
-                    <span className="pulse-dot absolute inline-flex h-full w-full rounded-full bg-primary" />
+                <div className="fade-up flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-orange-200 text-xs font-medium w-fit backdrop-blur-md">
+                    <span className="relative flex h-2 w-2">
+                      <span className="pulse-dot absolute inline-flex h-full w-full rounded-full bg-primary" />
+                    </span>
+                    Mangalore's AI Food Guide
                   </span>
-                  Mangalore's AI Food Guide
+                  {myLevel && (
+                    <span
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/20 border border-primary/40 text-orange-200 text-xs font-medium w-fit backdrop-blur-md"
+                      title={nextLevel ? `${nextLevel.min - (myScore ?? 0)} points to ${nextLevel.name}` : 'Max level!'}
+                    >
+                      {myLevel.emoji} {myLevel.name}
+                      {nextLevel && (
+                        <span className="text-white/50">· {nextLevel.min - (myScore ?? 0)} pts to {nextLevel.emoji}</span>
+                      )}
+                    </span>
+                  )}
                 </div>
                 <h1 className="fade-up fade-up-1 text-5xl xl:text-7xl text-white leading-[1.05] tracking-tight drop-shadow-lg" style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800 }}>
                   {user && firstName

@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { MessageSquare, Users, Star, TrendingUp, Heart, ArrowLeft, RefreshCw, BookOpen, CheckCircle, XCircle, Clock, Trash2, MapPin, Mail, Loader2, Send } from 'lucide-react';
 import { isAdminEmail } from '@/lib/admin';
+import { getLevel } from '@/lib/levels';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -497,7 +498,12 @@ export default function AdminPage() {
                       )}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{u.full_name || '—'}</p>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{u.full_name || '—'}</p>
+                        <span className="shrink-0 text-[10px] font-medium text-orange-300 bg-primary/15 border border-primary/30 px-1.5 py-0.5 rounded-full">
+                          {getLevel(u.contribution_score).emoji} {getLevel(u.contribution_score).name}
+                        </span>
+                      </div>
                       <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
                         {u.blog_count} blogs · {u.spot_count} spots · {u.photo_count} photos · {u.chat_count} chats
