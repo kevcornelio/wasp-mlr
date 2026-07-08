@@ -566,6 +566,16 @@ const ChatPage = () => {
           )}
         </div>
 
+        {/* Support contact */}
+        <div className="px-5 py-2 border-t border-white/10">
+          <a
+            href="mailto:admin@wasp-mlr.com"
+            className="text-[11px] text-white/40 hover:text-orange-300 transition-colors"
+          >
+            Support: admin@wasp-mlr.com
+          </a>
+        </div>
+
         {/* Sign in / out */}
         <div className="px-2 py-3 border-t border-white/10">
           {user ? (
@@ -684,6 +694,9 @@ const ChatPage = () => {
                 </h1>
                 <p className="fade-up fade-up-2 text-white/70 text-base leading-relaxed max-w-xs">
                   Tell me your mood, who you're with, or what you're craving. I'll find the perfect dish and spot in Mangalore.
+                </p>
+                <p className="fade-up fade-up-3 md:hidden text-xs text-white/40">
+                  Need help? <a href="mailto:admin@wasp-mlr.com" className="text-orange-300 hover:underline">admin@wasp-mlr.com</a>
                 </p>
               </div>
 
