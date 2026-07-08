@@ -3,10 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, MapPin, Calendar, User } from 'lucide-react';
 import Comments from '@/components/Comments';
+import LevelTag from '@/components/LevelTag';
+import { useLevels } from '@/hooks/useLevels';
 import LikeButton from '@/components/LikeButton';
 
 interface Blog {
   id: string;
+  user_id: string | null;
   author_name: string;
   title: string;
   content: string;
@@ -20,12 +23,13 @@ export default function BlogPostPage() {
   const [blog, setBlog] = useState<Blog | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const levels = useLevels([blog?.user_id]);
 
   useEffect(() => {
     const fetchBlog = async () => {
       const { data } = await supabase
         .from('blog_posts')
-        .select('id, author_name, title, content, restaurant_name, created_at')
+        .select('id, user_id, author_name, title, content, restaurant_name, created_at')
         .eq('id', id)
         .eq('status', 'approved')
         .single();
@@ -100,6 +104,7 @@ export default function BlogPostPage() {
           <span className="flex items-center gap-1.5">
             <User className="h-3.5 w-3.5" />
             {blog.author_name}
+            {blog.user_id && <LevelTag level={levels[blog.user_id]} />}
           </span>
           <span className="flex items-center gap-1.5">
             <Calendar className="h-3.5 w-3.5" />

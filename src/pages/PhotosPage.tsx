@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import Comments from '@/components/Comments';
 import LikeButton from '@/components/LikeButton';
 import { isAdminEmail } from '@/lib/admin';
+import LevelTag from '@/components/LevelTag';
+import { useLevels } from '@/hooks/useLevels';
 
 type FoodPhoto = {
   id: string;
@@ -28,6 +30,7 @@ const PhotosPage = () => {
   const [photos, setPhotos] = useState<FoodPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPhoto, setSelectedPhoto] = useState<FoodPhoto | null>(null);
+  const levels = useLevels(photos.map(p => p.user_id));
 
   // Upload state
   const [showUpload, setShowUpload] = useState(false);
@@ -214,7 +217,7 @@ const PhotosPage = () => {
                 {photo.caption && (
                   <p className="text-[10px] text-white truncate">{photo.caption}</p>
                 )}
-                <p className="text-[9px] text-white/80 truncate">📷 {photo.uploader_name || 'Anonymous'}</p>
+                <p className="text-[9px] text-white/80 truncate">📷 {photo.uploader_name || 'Anonymous'}{levels[photo.user_id] ? ` · ${levels[photo.user_id].emoji} ${levels[photo.user_id].name}` : ''}</p>
               </div>
               {user && (photo.user_id === user.id || isAdmin) && (
                 <button
@@ -246,7 +249,7 @@ const PhotosPage = () => {
               />
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs text-muted-foreground">
-                  📷 Shared by <span className="font-medium text-foreground">{selectedPhoto.uploader_name || 'Anonymous'}</span>
+                  📷 Shared by <span className="font-medium text-foreground">{selectedPhoto.uploader_name || 'Anonymous'}</span>{' '}<LevelTag level={levels[selectedPhoto.user_id]} />
                   {' · '}
                   {new Date(selectedPhoto.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </p>

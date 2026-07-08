@@ -14,6 +14,8 @@ import SupportModal from '@/components/SupportModal';
 import { LifeBuoy, ShieldCheck } from 'lucide-react';
 import { isAdminEmail } from '@/lib/admin';
 import { contributionScore, getLevel, getNextLevel } from '@/lib/levels';
+import LevelTag from '@/components/LevelTag';
+import { useLevels } from '@/hooks/useLevels';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
@@ -157,6 +159,7 @@ const ChatPage = () => {
   const [selectedRestaurantForSave, setSelectedRestaurantForSave] = useState('');
   const [latestBlogs, setLatestBlogs] = useState<{
     id: string;
+    user_id: string | null;
     title: string;
     content: string;
     author_name: string;
@@ -218,7 +221,7 @@ const ChatPage = () => {
     const loadBlogs = async () => {
       const { data } = await supabase
         .from('blog_posts')
-        .select('id, title, content, author_name, restaurant_name, created_at')
+        .select('id, user_id, title, content, author_name, restaurant_name, created_at')
         .eq('status', 'approved')
         .order('created_at', { ascending: false })
         .limit(3);
@@ -242,6 +245,7 @@ const ChatPage = () => {
     load();
   }, [user]);
 
+  const authorLevels = useLevels(latestBlogs.map(b => b.user_id));
   const myLevel = myScore !== null ? getLevel(myScore) : null;
   const nextLevel = myScore !== null ? getNextLevel(myScore) : null;
 
@@ -800,7 +804,7 @@ const ChatPage = () => {
                               <Calendar className="h-2.5 w-2.5" />
                               {new Date(blog.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                             </span>
-                            <span className="text-[10px] text-white/50">by {blog.author_name}</span>
+                            <span className="inline-flex items-center gap-1 text-[10px] text-white/50">by {blog.author_name}{blog.user_id && <LevelTag level={authorLevels[blog.user_id]} />}</span>
                             <span className="inline-flex items-center gap-1.5 text-[10px] text-white/50 ml-auto">
                               <span className="inline-flex items-center gap-0.5">
                                 <Heart className="h-2.5 w-2.5" />{engagement[blog.id]?.likes ?? 0}

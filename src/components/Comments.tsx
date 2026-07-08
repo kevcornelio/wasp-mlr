@@ -6,6 +6,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import LikeButton from '@/components/LikeButton';
+import LevelTag from '@/components/LevelTag';
+import { useLevels } from '@/hooks/useLevels';
 import { isAdminEmail } from '@/lib/admin';
 
 type Comment = {
@@ -32,6 +34,7 @@ const Comments = ({ blogPostId, photoId }: Props) => {
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const levels = useLevels(comments.map(c => c.user_id));
 
   const targetCol = blogPostId ? 'blog_post_id' : 'photo_id';
   const targetId = blogPostId ?? photoId;
@@ -96,6 +99,7 @@ const Comments = ({ blogPostId, photoId }: Props) => {
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-xs font-semibold text-foreground truncate">{c.author_name}</span>
+                  <LevelTag level={levels[c.user_id]} />
                   <span className="text-[10px] text-muted-foreground shrink-0">
                     {new Date(c.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                   </span>

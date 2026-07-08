@@ -3,9 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { PenLine, ArrowLeft, MapPin, Calendar, ChevronRight } from 'lucide-react';
+import LevelTag from '@/components/LevelTag';
+import { useLevels } from '@/hooks/useLevels';
 
 interface Blog {
   id: string;
+  user_id: string | null;
   author_name: string;
   title: string;
   content: string;
@@ -18,12 +21,13 @@ export default function BlogListPage() {
   const { user } = useAuth();
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
+  const levels = useLevels(blogs.map(b => b.user_id));
 
   useEffect(() => {
     const fetchBlogs = async () => {
       const { data } = await supabase
         .from('blog_posts')
-        .select('id, author_name, title, content, restaurant_name, created_at')
+        .select('id, user_id, author_name, title, content, restaurant_name, created_at')
         .eq('status', 'approved')
         .order('created_at', { ascending: false });
       setBlogs(data || []);
@@ -147,7 +151,7 @@ export default function BlogListPage() {
                         <Calendar className="h-3 w-3" />
                         {new Date(blog.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </span>
-                      <span className="text-xs text-muted-foreground">by {blog.author_name}</span>
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">by {blog.author_name}{blog.user_id && <LevelTag level={levels[blog.user_id]} />}</span>
                     </div>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1 group-hover:text-primary transition-colors" />
