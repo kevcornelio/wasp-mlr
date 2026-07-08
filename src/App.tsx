@@ -14,6 +14,7 @@ import BlogPostPage from "@/pages/BlogPostPage";
 import BlogEditorPage from "@/pages/BlogEditorPage";
 import PhotosPage from "@/pages/PhotosPage";
 import NotFound from "./pages/NotFound";
+import AppShell from "@/components/AppShell";
 
 const queryClient = new QueryClient();
 
@@ -28,13 +29,13 @@ const App = () => (
             <Route path="/" element={<Navigate to="/chat" replace />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/auth" element={<AuthPage />} />
-            <Route path="/preferences" element={<PreferencesPage />} />
-            <Route path="/spots" element={<FoodSpotsPage />} />
-            <Route path="/admin" element={<AdminPage />} />
-            <Route path="/blog" element={<BlogListPage />} />
-            <Route path="/blog/new" element={<BlogEditorPage />} />
-            <Route path="/blog/:id" element={<BlogPostPage />} />
-            <Route path="/photos" element={<PhotosPage />} />
+            <Route path="/preferences" element={<AppShell><PreferencesPage /></AppShell>} />
+            <Route path="/spots" element={<AppShell><FoodSpotsPage /></AppShell>} />
+            <Route path="/admin" element={<AppShell><AdminPage /></AppShell>} />
+            <Route path="/blog" element={<AppShell><BlogListPage /></AppShell>} />
+            <Route path="/blog/new" element={<AppShell><BlogEditorPage /></AppShell>} />
+            <Route path="/blog/:id" element={<AppShell><BlogPostPage /></AppShell>} />
+            <Route path="/photos" element={<AppShell><PhotosPage /></AppShell>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

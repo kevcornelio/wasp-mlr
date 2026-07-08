@@ -317,7 +317,7 @@ export default function AdminPage() {
 
   if (loading || fetching) {
     return (
-      <div className="dark flex items-center justify-center min-h-screen bg-background">
+      <div className="flex items-center justify-center min-h-full bg-background">
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           <p className="text-sm text-muted-foreground">Loading dashboard...</p>
@@ -360,7 +360,7 @@ export default function AdminPage() {
   ];
 
   return (
-    <div className="dark min-h-screen bg-background">
+    <div className="min-h-full bg-background">
       {/* Header */}
       <div className="border-b border-border bg-card sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">

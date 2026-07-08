@@ -128,7 +128,7 @@ const PhotosPage = () => {
   };
 
   return (
-    <div className="dark min-h-screen bg-background">
+    <div className="min-h-full bg-background">
     <div className="max-w-2xl mx-auto px-4 py-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
