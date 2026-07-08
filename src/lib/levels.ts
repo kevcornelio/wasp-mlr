@@ -5,13 +5,15 @@
 
 export type FoodLevel = { name: string; emoji: string; min: number };
 
+// Thresholds widen as levels rise — early wins come quickly, the top
+// levels are earned over the long haul.
 export const FOOD_LEVELS: FoodLevel[] = [
   { name: 'New Foodie', emoji: '🍽️', min: 0 },
-  { name: 'Taster', emoji: '🥢', min: 1 },
-  { name: 'Food Explorer', emoji: '🍜', min: 10 },
-  { name: 'Local Expert', emoji: '🍱', min: 25 },
-  { name: 'Connoisseur', emoji: '⭐', min: 50 },
-  { name: 'Food Legend', emoji: '👑', min: 100 },
+  { name: 'Taster', emoji: '🥢', min: 5 },
+  { name: 'Food Explorer', emoji: '🍜', min: 25 },
+  { name: 'Local Expert', emoji: '🍱', min: 75 },
+  { name: 'Connoisseur', emoji: '⭐', min: 150 },
+  { name: 'Food Legend', emoji: '👑', min: 300 },
 ];
 
 export const contributionScore = (blogs: number, spots: number, photos: number, chats = 0): number =>
