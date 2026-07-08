@@ -1,6 +1,7 @@
-// Admin-only: send a branded email to any registered user from the web app.
-// The caller's Supabase session token is verified server-side and the
-// account email must be an admin — nobody else can use this endpoint.
+// Admin-only: send a branded email to any address (registered user or not)
+// from the web app. The caller's Supabase session token is verified
+// server-side and the account email must be an admin — nobody else can use
+// this endpoint.
 
 import nodemailer from 'nodemailer';
 
@@ -12,8 +13,6 @@ const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
 
 // Mirrors is_admin() in the database and src/lib/admin.ts
 const ADMIN_EMAILS = ['kev.cornelio@gmail.com', 'admin@wasp-mlr.com'];
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const escapeHtml = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -49,21 +48,16 @@ export default async function handler(req: any, res: any) {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
-    const { to_user_id, subject, message } = req.body ?? {};
-    if (!UUID_RE.test(to_user_id ?? '')) return res.status(400).json({ error: 'Bad recipient' });
+    const { to_email, to_name, subject, message } = req.body ?? {};
+    if (typeof to_email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to_email)) {
+      return res.status(400).json({ error: 'Bad recipient email' });
+    }
     if (typeof subject !== 'string' || !subject.trim() || subject.length > 200) {
       return res.status(400).json({ error: 'Bad subject' });
     }
     if (typeof message !== 'string' || message.trim().length < 5 || message.length > 5000) {
       return res.status(400).json({ error: 'Message must be between 5 and 5000 characters' });
     }
-
-    const profRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/profiles?id=eq.${to_user_id}&select=email,full_name&limit=1`,
-      { headers: { apikey: SUPABASE_KEY!, Authorization: `Bearer ${SUPABASE_KEY}` } }
-    );
-    const profile = (await profRes.json())?.[0];
-    if (!profile?.email) return res.status(404).json({ error: 'User not found' });
 
     const transporter = nodemailer.createTransport({
       host: SMTP_HOST,
@@ -72,17 +66,19 @@ export default async function handler(req: any, res: any) {
       auth: { user: SMTP_USER, pass: SMTP_PASS },
     });
 
-    const firstName = profile.full_name?.trim().split(/\s+/)[0] || null;
+    const firstName = typeof to_name === 'string' && to_name.trim()
+      ? to_name.trim().split(/\s+/)[0].slice(0, 50)
+      : null;
     await transporter.sendMail({
       from: `"Wassup MLR" <${SMTP_USER}>`,
-      to: profile.email,
+      to: to_email,
       bcc: 'kev.cornelio@gmail.com',
       replyTo: `"Wassup MLR" <admin@wasp-mlr.com>`,
       subject: subject.trim(),
       html: brandedHtml(firstName, message),
     });
 
-    return res.status(200).json({ sent: true, to: profile.email });
+    return res.status(200).json({ sent: true, to: to_email });
   } catch (e) {
     console.error('admin-mail error:', e);
     return res.status(500).json({ error: 'Internal error' });

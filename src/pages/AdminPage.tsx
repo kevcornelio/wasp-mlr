@@ -51,6 +51,11 @@ interface UserProfile {
   email: string;
   created_at: string;
   chat_count: number;
+  blog_count: number;
+  spot_count: number;
+  photo_count: number;
+  // blogs ×5, spots ×3, photos ×1
+  contribution_score: number;
 }
 
 export default function AdminPage() {
@@ -67,14 +72,27 @@ export default function AdminPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletingSpotId, setDeletingSpotId] = useState<string | null>(null);
 
-  // Compose-mail dialog state
-  const [mailTo, setMailTo] = useState<UserProfile | null>(null);
+  // Compose-mail dialog state — works for registered users (prefilled) and
+  // any outside address typed in manually
+  const [mailOpen, setMailOpen] = useState(false);
+  const [mailToEmail, setMailToEmail] = useState('');
+  const [mailToName, setMailToName] = useState('');
   const [mailSubject, setMailSubject] = useState('');
   const [mailBody, setMailBody] = useState('');
   const [mailSending, setMailSending] = useState(false);
 
+  const openCompose = (email = '', name = '') => {
+    setMailToEmail(email);
+    setMailToName(name);
+    setMailOpen(true);
+  };
+
   const sendMailToUser = async () => {
-    if (!mailTo || !mailSubject.trim() || mailBody.trim().length < 5) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mailToEmail.trim())) {
+      toast.error('Enter a valid recipient email');
+      return;
+    }
+    if (!mailSubject.trim() || mailBody.trim().length < 5) {
       toast.error('Subject and a short message are required');
       return;
     }
@@ -88,14 +106,15 @@ export default function AdminPage() {
           Authorization: `Bearer ${session?.access_token ?? ''}`,
         },
         body: JSON.stringify({
-          to_user_id: mailTo.id,
+          to_email: mailToEmail.trim(),
+          to_name: mailToName.trim() || null,
           subject: mailSubject.trim(),
           message: mailBody.trim(),
         }),
       });
       if (!resp.ok) throw new Error('send failed');
-      toast.success(`Email sent to ${mailTo.full_name || mailTo.email}`);
-      setMailTo(null);
+      toast.success(`Email sent to ${mailToEmail.trim()}`);
+      setMailOpen(false);
       setMailSubject('');
       setMailBody('');
     } catch {
@@ -119,6 +138,9 @@ export default function AdminPage() {
         recentSessionsResult,
         profilesResult,
         userSessionCountResult,
+        blogAuthorsResult,
+        spotAuthorsResult,
+        photoAuthorsResult,
       ] = await Promise.all([
         supabase.from('chat_sessions').select('*', { count: 'exact', head: true }),
         supabase.from('chat_messages').select('*', { count: 'exact', head: true }),
@@ -127,6 +149,9 @@ export default function AdminPage() {
         supabase.from('chat_sessions').select('id, title, created_at, user_id').order('created_at', { ascending: false }).limit(10),
         supabase.from('profiles').select('id, full_name, email, created_at').order('created_at', { ascending: false }),
         supabase.from('chat_sessions').select('user_id').not('user_id', 'is', null),
+        supabase.from('blog_posts').select('user_id').eq('status', 'approved'),
+        supabase.from('user_food_spots').select('user_id'),
+        supabase.from('food_photos').select('user_id'),
       ]);
 
       // Calculate avg rating
@@ -161,11 +186,36 @@ export default function AdminPage() {
         if (s.user_id) chatCountMap.set(s.user_id, (chatCountMap.get(s.user_id) || 0) + 1);
       });
 
-      // Build profiles list with chat counts
-      const profilesWithCounts: UserProfile[] = (profilesResult.data || []).map(p => ({
-        ...p,
-        chat_count: chatCountMap.get(p.id) || 0,
-      }));
+      // Per-user contribution counts
+      const countMap = (rows: { user_id: string | null }[] | null) => {
+        const m = new Map<string, number>();
+        (rows || []).forEach(r => {
+          if (r.user_id) m.set(r.user_id, (m.get(r.user_id) || 0) + 1);
+        });
+        return m;
+      };
+      const blogCounts = countMap(blogAuthorsResult.data);
+      const spotCounts = countMap(spotAuthorsResult.data);
+      const photoCounts = countMap(photoAuthorsResult.data);
+
+      // Build profiles list with counts, ranked by weighted contribution
+      // (blogs ×5, spots ×3, photos ×1)
+      const profilesWithCounts: UserProfile[] = (profilesResult.data || [])
+        .map(p => {
+          const blog_count = blogCounts.get(p.id) || 0;
+          const spot_count = spotCounts.get(p.id) || 0;
+          const photo_count = photoCounts.get(p.id) || 0;
+          return {
+            ...p,
+            chat_count: chatCountMap.get(p.id) || 0,
+            blog_count,
+            spot_count,
+            photo_count,
+            contribution_score: blog_count * 5 + spot_count * 3 + photo_count,
+          };
+        })
+        .sort((a, b) => b.contribution_score - a.contribution_score
+          || new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
       setUsers(profilesWithCounts);
 
       // Build recent sessions with user emails
@@ -420,31 +470,47 @@ export default function AdminPage() {
 
         {/* Users */}
         <div className="bg-card border border-border rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Users className="h-4 w-4 text-violet-500" />
-            <h2 className="font-semibold text-sm text-foreground">Registered Users</h2>
-            <span className="text-xs text-muted-foreground ml-1">({users.length})</span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-violet-500" />
+              <h2 className="font-semibold text-sm text-foreground">Registered Users</h2>
+              <span className="text-xs text-muted-foreground ml-1">({users.length})</span>
+            </div>
+            <button
+              onClick={() => openCompose()}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-primary border border-primary/40 hover:bg-primary/15 transition-colors"
+            >
+              <Mail className="h-3.5 w-3.5" />
+              Compose to anyone
+            </button>
           </div>
           {users.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4 text-center">No users yet.</p>
           ) : (
             <div className="space-y-1">
-              {users.map(u => (
+              {users.map((u, rank) => (
                 <div key={u.id} className="flex items-center justify-between py-2 border-b border-border last:border-0 gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{u.full_name || '—'}</p>
-                    <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                  <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                    <span className="w-7 text-center text-sm shrink-0" title={`Rank #${rank + 1}`}>
+                      {rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : (
+                        <span className="text-xs text-muted-foreground">#{rank + 1}</span>
+                      )}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{u.full_name || '—'}</p>
+                      <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {u.blog_count} blogs · {u.spot_count} spots · {u.photo_count} photos · {u.chat_count} chats
+                      </p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-3 shrink-0 text-right">
                     <div>
-                      <p className="text-sm font-semibold text-foreground">{u.chat_count}</p>
-                      <p className="text-[10px] text-muted-foreground">chats</p>
+                      <p className="text-sm font-semibold text-primary">{u.contribution_score}</p>
+                      <p className="text-[10px] text-muted-foreground">score</p>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(u.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </p>
                     <button
-                      onClick={() => setMailTo(u)}
+                      onClick={() => openCompose(u.email, u.full_name || '')}
                       className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-primary border border-primary/40 hover:bg-primary/15 transition-colors"
                     >
                       <Mail className="h-3.5 w-3.5" />
@@ -620,18 +686,41 @@ export default function AdminPage() {
         </p>
       </div>
 
-      {/* Compose mail to user */}
-      <Dialog open={!!mailTo} onOpenChange={(open) => { if (!open) setMailTo(null); }}>
-        <DialogContent className="max-w-md">
+      {/* Compose mail — registered user or any address */}
+      <Dialog open={mailOpen} onOpenChange={setMailOpen}>
+        <DialogContent className="max-w-md dark">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Mail className="h-4 w-4 text-primary" /> Email {mailTo?.full_name || mailTo?.email}
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <Mail className="h-4 w-4 text-primary" /> Send an email
             </DialogTitle>
             <DialogDescription>
               Sent from admin@wasp-mlr.com in the Wassup MLR branded template, greeting them by first name.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">To</label>
+                <Input
+                  type="email"
+                  value={mailToEmail}
+                  onChange={e => setMailToEmail(e.target.value)}
+                  placeholder="someone@example.com"
+                  disabled={mailSending}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Name <span className="text-muted-foreground font-normal">(for the greeting)</span>
+                </label>
+                <Input
+                  value={mailToName}
+                  onChange={e => setMailToName(e.target.value)}
+                  placeholder="e.g. Priya"
+                  disabled={mailSending}
+                />
+              </div>
+            </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">Subject</label>
               <Input
@@ -653,7 +742,7 @@ export default function AdminPage() {
                 disabled={mailSending}
               />
             </div>
-            <Button onClick={sendMailToUser} disabled={mailSending || !mailSubject.trim() || !mailBody.trim()} className="w-full gap-2">
+            <Button onClick={sendMailToUser} disabled={mailSending || !mailToEmail.trim() || !mailSubject.trim() || !mailBody.trim()} className="w-full gap-2">
               {mailSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               Send email
             </Button>
