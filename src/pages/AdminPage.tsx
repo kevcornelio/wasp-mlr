@@ -6,7 +6,10 @@ import { MessageSquare, Users, Star, TrendingUp, Heart, ArrowLeft, RefreshCw, Bo
 
 interface PendingBlog {
   id: string;
+  user_id: string | null;
   author_name: string;
+  // Resolved from profiles (admin-only readable) — the column itself is no
+  // longer exposed through the API
   author_email: string | null;
   title: string;
   content: string;
@@ -141,21 +144,32 @@ export default function AdminPage() {
         dailyChats: [],
       });
 
+      // Author emails come from profiles (admin can read all profiles);
+      // author_email on blog_posts is no longer selectable via the API
+      const { data: profilesForEmail } = await supabase
+        .from('profiles')
+        .select('id, email');
+      const emailById = new Map((profilesForEmail || []).map(p => [p.id, p.email]));
+      const withEmail = <T extends { user_id: string | null }>(b: T) => ({
+        ...b,
+        author_email: b.user_id ? emailById.get(b.user_id) ?? null : null,
+      });
+
       // Fetch pending blogs
       const { data: blogsData } = await supabase
         .from('blog_posts')
-        .select('id, author_name, author_email, title, content, restaurant_name, created_at')
+        .select('id, user_id, author_name, title, content, restaurant_name, created_at')
         .eq('status', 'pending')
         .order('created_at', { ascending: true });
-      setPendingBlogs(blogsData || []);
+      setPendingBlogs((blogsData || []).map(withEmail));
 
       // Fetch all blogs (approved + rejected)
       const { data: allBlogsData } = await supabase
         .from('blog_posts')
-        .select('id, author_name, author_email, title, content, restaurant_name, created_at, status')
+        .select('id, user_id, author_name, title, content, restaurant_name, created_at, status')
         .in('status', ['approved', 'rejected'])
         .order('created_at', { ascending: false });
-      setAllBlogs(allBlogsData || []);
+      setAllBlogs((allBlogsData || []).map(withEmail));
 
       // Fetch user-submitted food spots
       const { data: spotsData } = await supabase
