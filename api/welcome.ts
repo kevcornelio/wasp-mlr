@@ -72,6 +72,16 @@ async function claimDedupeKey(key: string): Promise<boolean> {
   return Array.isArray(rows) && rows.length > 0;
 }
 
+// If a send fails after its key was claimed, release the key so the next
+// attempt can retry instead of being permanently skipped.
+async function releaseDedupeKey(key: string): Promise<void> {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return;
+  await fetch(`${SUPABASE_URL}/rest/v1/notification_log?dedupe_key=eq.${encodeURIComponent(key)}`, {
+    method: 'DELETE',
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+  }).catch(() => {});
+}
+
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!SMTP_USER || !SMTP_PASS) return res.status(500).json({ error: 'SMTP not configured' });
@@ -109,16 +119,22 @@ export default async function handler(req: any, res: any) {
       );
       const profile = (await profRes.json())?.[0];
       if (!profile?.email) return res.status(404).json({ error: 'Not found' });
-      if (!await claimDedupeKey(`welcome:${profile.id}`)) return res.status(200).json({ skipped: true });
+      const dedupeKey = `welcome:${profile.id}`;
+      if (!await claimDedupeKey(dedupeKey)) return res.status(200).json({ skipped: true });
 
       const firstName = profile.full_name?.trim().split(/\s+/)[0] || null;
-      await transporter.sendMail({
-        from: `"Wassup MLR" <${SMTP_USER}>`,
-        to: profile.email,
-        bcc: 'kev.cornelio@gmail.com',
-        subject: SUBJECT,
-        html: welcomeHtml(firstName),
-      });
+      try {
+        await transporter.sendMail({
+          from: `"Wassup MLR" <${SMTP_USER}>`,
+          to: profile.email,
+          bcc: 'kev.cornelio@gmail.com',
+          subject: SUBJECT,
+          html: welcomeHtml(firstName),
+        });
+      } catch (e) {
+        await releaseDedupeKey(dedupeKey);
+        throw e;
+      }
       return res.status(200).json({ sent: true });
     }
 
@@ -133,22 +149,29 @@ export default async function handler(req: any, res: any) {
       });
       const profiles: { id: string; email: string | null; full_name: string | null }[] = await profRes.json();
 
-      let sent = 0, skipped = 0;
+      let sent = 0, skipped = 0, failed = 0;
       for (const p of profiles) {
         if (!p.email) { skipped++; continue; }
-        if (!await claimDedupeKey(`welcome:${p.id}`)) { skipped++; continue; }
+        const dedupeKey = `welcome:${p.id}`;
+        if (!await claimDedupeKey(dedupeKey)) { skipped++; continue; }
         const firstName = p.full_name?.trim().split(/\s+/)[0] || null;
-        await transporter.sendMail({
-          from: `"Wassup MLR" <${SMTP_USER}>`,
-          to: p.email,
-          bcc: 'kev.cornelio@gmail.com',
-          subject: SUBJECT,
-          html: welcomeHtml(firstName),
-        });
-        sent++;
+        try {
+          await transporter.sendMail({
+            from: `"Wassup MLR" <${SMTP_USER}>`,
+            to: p.email,
+            bcc: 'kev.cornelio@gmail.com',
+            subject: SUBJECT,
+            html: welcomeHtml(firstName),
+          });
+          sent++;
+        } catch (e) {
+          console.error(`welcome send failed for ${p.email}:`, e);
+          await releaseDedupeKey(dedupeKey);
+          failed++;
+        }
         await new Promise(r => setTimeout(r, 400));
       }
-      return res.status(200).json({ sent, skipped, total: profiles.length });
+      return res.status(200).json({ sent, skipped, failed, total: profiles.length });
     }
 
     return res.status(400).json({ error: 'Unknown mode' });
