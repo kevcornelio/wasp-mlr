@@ -407,15 +407,19 @@ export default async function handler(req: Request) {
     const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
     if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is not configured');
 
-    // Non-blocking: stamp coarse origin geo on the session (first message only).
-    if (typeof session_id === 'string' && UUID_RE.test(session_id)) {
-      void recordSessionGeo(session_id, req);
-    }
+    // Stamp coarse origin geo on the session (first message only). Kicked off
+    // here so it overlaps with the RAG work, then awaited below — the edge
+    // runtime doesn't guarantee un-awaited promises finish once we return the
+    // stream, so it must resolve while the handler is still alive.
+    const geoPromise = typeof session_id === 'string' && UUID_RE.test(session_id)
+      ? recordSessionGeo(session_id, req)
+      : Promise.resolve();
 
     const [ragContext, personalContext] = await Promise.all([
       getRagContext(messages),
       getPersonalContext(user_id, device_id),
     ]);
+    await geoPromise;
 
     const enhancedSystemPrompt = SYSTEM_PROMPT + ragContext + personalContext;
 
