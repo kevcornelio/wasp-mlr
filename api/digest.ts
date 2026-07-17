@@ -2,13 +2,18 @@
 // level-ups from the past 7 days, mailed to every profile that hasn't
 // opted out. Skips the send entirely on a quiet week.
 //
-// Triggers:
-//   GET  — Vercel cron (vercel.json). Requires Authorization: Bearer CRON_SECRET.
-//   POST { mode: "test" } — sends the digest to the admin's own inbox only.
-//   POST { mode: "send", confirm: "SEND_DIGEST_TO_ALL" } — manual full send.
+// The feature is admin-controlled from the Admin page — there is no active
+// cron (vercel.json has none), so nothing sends without a person clicking.
 //
-// Deduped per ISO week (digest:<year>-W<week>:<user_id>) so a cron retry or
-// a manual send after the cron cannot email anyone twice in the same week.
+// Triggers (POST modes below require a valid admin Supabase session):
+//   POST { mode: "preview" } — returns this week's counts, sends nothing.
+//   POST { mode: "test" } — sends the digest to the admin's own inbox only.
+//   POST { mode: "send", confirm: "SEND_DIGEST_TO_ALL" } — full send.
+//   GET  — dormant cron hook. Requires Authorization: Bearer CRON_SECRET.
+//     Re-arm by adding a crons entry to vercel.json and setting CRON_SECRET.
+//
+// Deduped per ISO week (digest:<year>-W<week>:<user_id>) so a retry or a
+// second click cannot email anyone twice in the same week.
 
 import nodemailer from 'nodemailer';
 import { createHmac } from 'crypto';
@@ -23,6 +28,20 @@ const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
 const CRON_SECRET = process.env.CRON_SECRET;
 const SITE_URL = 'https://www.wasp-mlr.com';
 const TEST_RECIPIENT = 'kev.cornelio@gmail.com';
+
+// Mirrors is_admin() in the database and src/lib/admin.ts
+const ADMIN_EMAILS = ['kev.cornelio@gmail.com', 'admin@wasp-mlr.com'];
+
+// Validates the caller's Supabase JWT and returns their email, or null.
+async function getCallerEmail(authHeader: string | undefined): Promise<string | null> {
+  if (!authHeader?.startsWith('Bearer ') || !SUPABASE_URL || !SUPABASE_KEY) return null;
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: { apikey: SUPABASE_KEY, Authorization: authHeader },
+  });
+  if (!res.ok) return null;
+  const user = await res.json();
+  return user?.email ?? null;
+}
 
 // Mirrors src/lib/levels.ts — keep in sync (that file is the source of truth).
 const FOOD_LEVELS = [
@@ -197,10 +216,9 @@ function digestHtml(d: DigestData, userId: string | null): string {
 const SUBJECT = "🍛 This week's tastiest finds in Mangalore";
 
 export default async function handler(req: any, res: any) {
-  if (!SMTP_USER || !SMTP_PASS) return res.status(500).json({ error: 'SMTP not configured' });
   if (!SUPABASE_URL || !SUPABASE_KEY) return res.status(500).json({ error: 'DB not configured' });
 
-  let mode: 'cron' | 'test' | 'send';
+  let mode: 'cron' | 'preview' | 'test' | 'send';
   if (req.method === 'GET') {
     if (!CRON_SECRET) return res.status(503).json({ error: 'CRON_SECRET not configured' });
     if (req.headers?.authorization !== `Bearer ${CRON_SECRET}`) {
@@ -208,27 +226,49 @@ export default async function handler(req: any, res: any) {
     }
     mode = 'cron';
   } else if (req.method === 'POST') {
+    const callerEmail = await getCallerEmail(req.headers?.authorization);
+    if (!callerEmail || !ADMIN_EMAILS.includes(callerEmail)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
     const body = req.body ?? {};
-    if (body.mode === 'test') mode = 'test';
+    if (body.mode === 'preview') mode = 'preview';
+    else if (body.mode === 'test') mode = 'test';
     else if (body.mode === 'send' && body.confirm === 'SEND_DIGEST_TO_ALL') mode = 'send';
     else return res.status(400).json({ error: 'Bad mode or missing confirmation' });
   } else {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const transporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: 465,
-    secure: true,
-    auth: { user: SMTP_USER, pass: SMTP_PASS },
-  });
+  // Preview never sends, so it doesn't need SMTP configured.
+  if (mode !== 'preview' && (!SMTP_USER || !SMTP_PASS)) {
+    return res.status(500).json({ error: 'SMTP not configured' });
+  }
 
   try {
     const cutoff = new Date(Date.now() - 7 * 86400000).toISOString();
     const data = await gatherWeek(cutoff);
 
     const quiet = !data.spots.length && !data.blogs.length && !data.photoCount && !data.levelUps.length;
+
+    if (mode === 'preview') {
+      return res.status(200).json({
+        preview: true,
+        quiet,
+        spots: data.spots.length,
+        blogs: data.blogs.length,
+        photos: data.photoCount,
+        levelUps: data.levelUps.length,
+      });
+    }
+
     if (quiet && mode !== 'test') return res.status(200).json({ skipped: 'no activity this week' });
+
+    const transporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: 465,
+      secure: true,
+      auth: { user: SMTP_USER, pass: SMTP_PASS },
+    });
 
     if (mode === 'test') {
       await transporter.sendMail({

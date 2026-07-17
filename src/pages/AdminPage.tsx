@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { MessageSquare, Users, Star, TrendingUp, Heart, ArrowLeft, RefreshCw, BookOpen, CheckCircle, XCircle, Clock, Trash2, MapPin, Mail, Loader2, Send } from 'lucide-react';
+import { MessageSquare, Users, Star, TrendingUp, Heart, ArrowLeft, RefreshCw, BookOpen, CheckCircle, XCircle, Clock, Trash2, MapPin, Mail, Loader2, Send, Newspaper } from 'lucide-react';
 import { isAdminEmail } from '@/lib/admin';
 import { getLevel, contributionScore } from '@/lib/levels';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -122,6 +122,66 @@ export default function AdminPage() {
       toast.error('Could not send the email');
     } finally {
       setMailSending(false);
+    }
+  };
+
+  // Weekly digest — admin-controlled, no cron. Preview shows what this
+  // week's email would contain; test mails only the admin; send goes to all.
+  type DigestPreview = { spots: number; blogs: number; photos: number; levelUps: number; quiet: boolean };
+  const [digestPreview, setDigestPreview] = useState<DigestPreview | null>(null);
+  const [digestBusy, setDigestBusy] = useState<'preview' | 'test' | 'send' | null>(null);
+  const [digestConfirmOpen, setDigestConfirmOpen] = useState(false);
+
+  const callDigest = async (body: Record<string, unknown>) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const resp = await fetch('/api/digest', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session?.access_token ?? ''}`,
+      },
+      body: JSON.stringify(body),
+    });
+    const json = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(json?.error || 'Request failed');
+    return json;
+  };
+
+  const previewDigest = async () => {
+    setDigestBusy('preview');
+    try {
+      const j = await callDigest({ mode: 'preview' });
+      setDigestPreview({ spots: j.spots, blogs: j.blogs, photos: j.photos, levelUps: j.levelUps, quiet: j.quiet });
+    } catch {
+      toast.error('Could not load the digest preview');
+    } finally {
+      setDigestBusy(null);
+    }
+  };
+
+  const testDigest = async () => {
+    setDigestBusy('test');
+    try {
+      const j = await callDigest({ mode: 'test' });
+      toast.success(`Test digest sent to ${j.to}${j.quiet ? ' (quiet week — mostly empty)' : ''}`);
+    } catch {
+      toast.error('Could not send the test digest');
+    } finally {
+      setDigestBusy(null);
+    }
+  };
+
+  const sendDigestToAll = async () => {
+    setDigestConfirmOpen(false);
+    setDigestBusy('send');
+    try {
+      const j = await callDigest({ mode: 'send', confirm: 'SEND_DIGEST_TO_ALL' });
+      if (j.skipped) toast.info('No activity this week — nothing was sent');
+      else toast.success(`Digest sent to ${j.sent} · skipped ${j.skipped}${j.failed ? ` · failed ${j.failed}` : ''}`);
+    } catch {
+      toast.error('Could not send the digest');
+    } finally {
+      setDigestBusy(null);
     }
   };
 
@@ -529,6 +589,47 @@ export default function AdminPage() {
           )}
         </div>
 
+        {/* Weekly Digest — manual, admin-controlled (no cron) */}
+        <div className="bg-card border border-border rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Newspaper className="h-4 w-4 text-violet-500" />
+            <h2 className="font-semibold text-sm text-foreground">Weekly Digest</h2>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            A roundup of the past 7 days — new spots, stories, photos, and level-ups. Sends only when you click; subscribers can unsubscribe from the email.
+          </p>
+
+          {digestPreview && (
+            <div className="mb-4 rounded-xl border border-border bg-background/50 p-3">
+              {digestPreview.quiet ? (
+                <p className="text-xs text-muted-foreground">No activity in the last 7 days — a real send would skip this week.</p>
+              ) : (
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-foreground">
+                  <span>🍽️ {digestPreview.spots} spots</span>
+                  <span>📖 {digestPreview.blogs} stories</span>
+                  <span>📸 {digestPreview.photos} photos</span>
+                  <span>🎉 {digestPreview.levelUps} level-ups</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" className="gap-2" onClick={previewDigest} disabled={digestBusy !== null}>
+              {digestBusy === 'preview' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              Preview this week
+            </Button>
+            <Button variant="outline" size="sm" className="gap-2" onClick={testDigest} disabled={digestBusy !== null}>
+              {digestBusy === 'test' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+              Test to me
+            </Button>
+            <Button size="sm" className="gap-2" onClick={() => setDigestConfirmOpen(true)} disabled={digestBusy !== null}>
+              {digestBusy === 'send' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              Send to all
+            </Button>
+          </div>
+        </div>
+
         {/* Blog Approval Queue */}
         <div className="bg-card border border-border rounded-2xl p-4">
           <div className="flex items-center justify-between mb-4">
@@ -751,6 +852,27 @@ export default function AdminPage() {
             <Button onClick={sendMailToUser} disabled={mailSending || !mailToEmail.trim() || !mailSubject.trim() || !mailBody.trim()} className="w-full gap-2">
               {mailSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               Send email
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm full digest send */}
+      <Dialog open={digestConfirmOpen} onOpenChange={setDigestConfirmOpen}>
+        <DialogContent className="max-w-md dark">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <Send className="h-4 w-4 text-primary" /> Send the weekly digest?
+            </DialogTitle>
+            <DialogDescription>
+              This emails the past-7-days roundup to every subscribed user (everyone who hasn't opted out). Each person gets it at most once this week. If there's been no activity, nothing is sent.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setDigestConfirmOpen(false)}>Cancel</Button>
+            <Button onClick={sendDigestToAll} className="gap-2">
+              <Send className="h-4 w-4" />
+              Send to all
             </Button>
           </div>
         </DialogContent>
