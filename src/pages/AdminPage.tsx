@@ -42,7 +42,7 @@ interface Stats {
   totalRecommendations: number;
   avgRating: number;
   topRestaurants: { restaurant_name: string; count: number; avg_rating: number }[];
-  recentSessions: { id: string; title: string; created_at: string; user_email: string | null }[];
+  recentSessions: { id: string; title: string; created_at: string; user_email: string | null; ip: string | null; country: string | null; region: string | null; city: string | null }[];
   dailyChats: { date: string; count: number }[];
 }
 
@@ -58,6 +58,12 @@ interface UserProfile {
   // weights defined in src/lib/levels.ts
   contribution_score: number;
 }
+
+// ISO 3166-1 alpha-2 code (e.g. "IN") → flag emoji via regional indicators.
+const countryFlag = (code: string | null): string => {
+  if (!code || !/^[A-Za-z]{2}$/.test(code)) return '';
+  return String.fromCodePoint(...[...code.toUpperCase()].map(c => 0x1f1e6 + c.charCodeAt(0) - 65));
+};
 
 export default function AdminPage() {
   const { user, loading } = useAuth();
@@ -207,7 +213,7 @@ export default function AdminPage() {
         supabase.from('chat_messages').select('*', { count: 'exact', head: true }),
         supabase.from('community_recommendations').select('rating'),
         supabase.from('community_recommendations').select('restaurant_name, rating').order('rating', { ascending: false }),
-        supabase.from('chat_sessions').select('id, title, created_at, user_id').order('created_at', { ascending: false }).limit(10),
+        supabase.from('chat_sessions').select('id, title, created_at, user_id, ip, country, region, city').order('created_at', { ascending: false }).limit(10),
         supabase.from('profiles').select('id, full_name, email, created_at').order('created_at', { ascending: false }),
         supabase.from('chat_sessions').select('user_id').not('user_id', 'is', null),
         supabase.from('blog_posts').select('user_id').eq('status', 'approved'),
@@ -513,17 +519,26 @@ export default function AdminPage() {
               <p className="text-sm text-muted-foreground py-4 text-center">No chats yet.</p>
             ) : (
               <div className="space-y-1">
-                {stats?.recentSessions.map(s => (
-                  <div key={s.id} className="flex items-center justify-between py-2 border-b border-border last:border-0 gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-foreground truncate">{s.title || 'Untitled chat'}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">{s.user_email}</p>
+                {stats?.recentSessions.map(s => {
+                  const place = [s.city, s.region].filter(Boolean).join(', ');
+                  const location = [countryFlag(s.country), place || s.country].filter(Boolean).join(' ').trim();
+                  return (
+                    <div key={s.id} className="flex items-center justify-between py-2 border-b border-border last:border-0 gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-foreground truncate">{s.title || 'Untitled chat'}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{s.user_email}</p>
+                        {(location || s.ip) && (
+                          <p className="text-[10px] text-muted-foreground truncate">
+                            {location}{location && s.ip ? ' · ' : ''}{s.ip && <span className="font-mono">{s.ip}</span>}
+                          </p>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {new Date(s.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                      </span>
                     </div>
-                    <span className="text-xs text-muted-foreground shrink-0">
-                      {new Date(s.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

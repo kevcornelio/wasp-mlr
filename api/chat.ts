@@ -358,6 +358,40 @@ Always greet warmly and probe for context (mood, who they're with, what they're 
 
 // ── Handler ──────────────────────────────────────────────────────────────────
 
+// Coarse geo/IP from Vercel's edge headers, written onto the session the
+// first time it reaches us (filter ip=is.null → set once, never overwritten
+// on later messages). Fire-and-forget: geo is analytics, never block the reply.
+async function recordSessionGeo(sessionId: string, req: Request): Promise<void> {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return;
+  const h = req.headers;
+  const ip = (h.get('x-forwarded-for') || h.get('x-real-ip') || '').split(',')[0].trim();
+  const country = h.get('x-vercel-ip-country') || null;
+  const region = h.get('x-vercel-ip-country-region') || null;
+  const cityRaw = h.get('x-vercel-ip-city');
+  const city = cityRaw ? decodeURIComponent(cityRaw) : null;
+  if (!ip && !country && !city) return;
+
+  try {
+    await fetch(
+      `${SUPABASE_URL}/rest/v1/chat_sessions?id=eq.${sessionId}&ip=is.null`,
+      {
+        method: 'PATCH',
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          Prefer: 'return=minimal',
+        },
+        body: JSON.stringify({ ip: ip || null, country, region, city }),
+      }
+    );
+  } catch (err) {
+    console.error('recordSessionGeo failed:', err);
+  }
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default async function handler(req: Request) {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -369,9 +403,14 @@ export default async function handler(req: Request) {
   }
 
   try {
-    const { messages, user_id, device_id } = await req.json();
+    const { messages, user_id, device_id, session_id } = await req.json();
     const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
     if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is not configured');
+
+    // Non-blocking: stamp coarse origin geo on the session (first message only).
+    if (typeof session_id === 'string' && UUID_RE.test(session_id)) {
+      void recordSessionGeo(session_id, req);
+    }
 
     const [ragContext, personalContext] = await Promise.all([
       getRagContext(messages),

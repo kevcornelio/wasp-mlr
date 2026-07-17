@@ -363,7 +363,7 @@ const ChatPage = () => {
     return id;
   };
 
-  const streamChat = async (allMessages: Msg[]) => {
+  const streamChat = async (allMessages: Msg[], sessionId: string | null) => {
     const resp = await fetch(CHAT_URL, {
       method: 'POST',
       headers: {
@@ -373,6 +373,7 @@ const ChatPage = () => {
         messages: allMessages,
         user_id: user?.id ?? null,
         device_id: user ? null : getDeviceId(),
+        session_id: sessionId,
       }),
     });
 
@@ -439,7 +440,7 @@ const ChatPage = () => {
       const sessionId = await createOrGetSession(text.trim());
       await saveMessage(sessionId, 'user', text.trim());
 
-      const assistantContent = await streamChat(newMessages);
+      const assistantContent = await streamChat(newMessages, sessionId);
 
       if (sessionId && assistantContent) {
         await saveMessage(sessionId, 'assistant', assistantContent);

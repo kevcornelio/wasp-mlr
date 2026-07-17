@@ -92,25 +92,37 @@ export type Database = {
       }
       chat_sessions: {
         Row: {
+          city: string | null
+          country: string | null
           created_at: string
           device_id: string | null
           id: string
+          ip: string | null
+          region: string | null
           title: string
           updated_at: string
           user_id: string | null
         }
         Insert: {
+          city?: string | null
+          country?: string | null
           created_at?: string
           device_id?: string | null
           id?: string
+          ip?: string | null
+          region?: string | null
           title?: string
           updated_at?: string
           user_id?: string | null
         }
         Update: {
+          city?: string | null
+          country?: string | null
           created_at?: string
           device_id?: string | null
           id?: string
+          ip?: string | null
+          region?: string | null
           title?: string
           updated_at?: string
           user_id?: string | null
