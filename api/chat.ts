@@ -390,8 +390,6 @@ async function recordSessionGeo(sessionId: string, req: Request): Promise<void> 
   }
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 export default async function handler(req: Request) {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -411,23 +409,15 @@ export default async function handler(req: Request) {
     // here so it overlaps with the RAG work, then awaited below — the edge
     // runtime doesn't guarantee un-awaited promises finish once we return the
     // stream, so it must resolve while the handler is still alive.
-    const geoValid = typeof session_id === 'string' && UUID_RE.test(session_id);
-    const geoPromise = geoValid ? recordSessionGeo(session_id, req) : Promise.resolve();
+    const geoPromise = typeof session_id === 'string' && UUID_RE.test(session_id)
+      ? recordSessionGeo(session_id, req)
+      : Promise.resolve();
 
     const [ragContext, personalContext] = await Promise.all([
       getRagContext(messages),
       getPersonalContext(user_id, device_id),
     ]);
     await geoPromise;
-
-    // TEMP DEBUG — remove after verifying geo capture in prod.
-    const dbg = {
-      sid: geoValid ? '1' : '0',
-      key: SUPABASE_KEY ? '1' : '0',
-      xff: (req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '').split(',')[0].trim() || '-',
-      country: req.headers.get('x-vercel-ip-country') || '-',
-      city: req.headers.get('x-vercel-ip-city') || '-',
-    };
 
     const enhancedSystemPrompt = SYSTEM_PROMPT + ragContext + personalContext;
 
@@ -463,10 +453,7 @@ export default async function handler(req: Request) {
     }
 
     return new Response(response.body, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'X-Geo-Debug': `sid=${dbg.sid};key=${dbg.key};xff=${dbg.xff};country=${dbg.country};city=${dbg.city}`,
-      },
+      headers: { 'Content-Type': 'text/event-stream' },
     });
   } catch (e) {
     console.error('chat error:', e);
