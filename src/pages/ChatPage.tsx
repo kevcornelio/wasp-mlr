@@ -745,6 +745,9 @@ const ChatPage = () => {
                 <p className="fade-up fade-up-2 text-white/70 text-base leading-relaxed max-w-xs">
                   Tell me your mood, who you're with, or what you're craving. I'll find the perfect dish and spot in Mangalore.
                 </p>
+                <p className="fade-up fade-up-2 text-sm font-semibold uppercase tracking-[0.2em] text-white/70">
+                  Ask. <span className="text-gradient-warm">Eat.</span> Share.
+                </p>
                 <p className="fade-up fade-up-3 md:hidden text-xs text-white/40">
                   Need help?{' '}
                   <button onClick={() => setSupportOpen(true)} className="text-orange-300 hover:underline">
