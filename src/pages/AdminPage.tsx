@@ -634,7 +634,12 @@ export default function AdminPage() {
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setOutreachOpen(true)}
+                onClick={() => {
+                  // Populate the template if the fields are empty, then open.
+                  setOutreachSubject(s => (s.trim() ? s : OUTREACH_SUBJECT));
+                  setOutreachBody(b => (b.trim() ? b : OUTREACH_BODY));
+                  setOutreachOpen(true);
+                }}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-primary border border-primary/40 hover:bg-primary/15 transition-colors"
               >
                 <Send className="h-3.5 w-3.5" />
@@ -999,7 +1004,16 @@ export default function AdminPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Message</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-medium text-foreground">Message</label>
+                <button
+                  type="button"
+                  onClick={() => { setOutreachSubject(OUTREACH_SUBJECT); setOutreachBody(OUTREACH_BODY); }}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Reset to template
+                </button>
+              </div>
               <Textarea
                 value={outreachBody}
                 onChange={e => setOutreachBody(e.target.value)}
