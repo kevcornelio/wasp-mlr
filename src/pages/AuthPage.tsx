@@ -54,12 +54,17 @@ const AuthPage = () => {
         </button>
 
         {/* Logo */}
-        <div className="flex items-center justify-center gap-3 mb-8">
+        <div className="flex items-center justify-center gap-3 mb-3">
           <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
             <UtensilsCrossed className="h-5 w-5 text-primary-foreground" />
           </div>
           <span className="text-2xl font-bold text-foreground">Wasp MLR</span>
         </div>
+
+        {/* Tagline */}
+        <p className="text-center text-sm font-medium tracking-wide text-muted-foreground mb-8">
+          Ask. <span className="text-primary">Eat.</span> Share.
+        </p>
 
         <div className="bg-card rounded-xl border border-border p-8 shadow-sm">
           <h2 className="text-xl font-semibold text-foreground mb-1">
