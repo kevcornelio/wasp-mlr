@@ -65,6 +65,37 @@ const countryFlag = (code: string | null): string => {
   return String.fromCodePoint(...[...code.toUpperCase()].map(c => 0x1f1e6 + c.charCodeAt(0) - 65));
 };
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Outreach email pre-fill. The branded template adds the "Hey <name>!"
+// greeting, an "Open Wassup MLR →" button, and the "The Wassup MLR team"
+// sign-off, so the body here is just the middle paragraphs.
+const OUTREACH_SUBJECT = "Would love your take on Mangalore's food scene 🍛";
+const OUTREACH_BODY = `We've been building something called Wassup MLR — an AI food guide for Mangalore. You tell it your mood or craving and it points you to the right dish at the right spot, drawn from real recommendations by local foodies rather than generic star ratings.
+
+You came to mind because you actually know this city's food — the places worth the drive, the dishes people sleep on. We'd love for you to take it for a spin and, if it clicks, write up your experience as a food story right on the app. Your voice would help shape what the community discovers, and you'd be one of the first names on it.
+
+No catch — we're just keen for honest takes from people who genuinely love eating in Mangalore. Hit reply if you have any questions, or jump straight in below.`;
+
+// Parse a recipients box: one per line, as "email", "Name <email>",
+// or "Name, email" / "email, Name".
+const parseRecipients = (raw: string): { email: string; name: string }[] =>
+  raw
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean)
+    .map(line => {
+      const angle = line.match(/^(.*?)<([^>]+)>$/);
+      if (angle) return { name: angle[1].trim().replace(/^["']|["']$/g, ''), email: angle[2].trim() };
+      if (line.includes(',')) {
+        const parts = line.split(',').map(p => p.trim());
+        const email = parts.find(p => p.includes('@')) ?? '';
+        const name = parts.find(p => p && !p.includes('@')) ?? '';
+        return { name, email };
+      }
+      return { name: '', email: line };
+    });
+
 export default function AdminPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -92,6 +123,55 @@ export default function AdminPage() {
     setMailToEmail(email);
     setMailToName(name);
     setMailOpen(true);
+  };
+
+  // Bulk outreach dialog — invite potential users to try the app and blog.
+  const [outreachOpen, setOutreachOpen] = useState(false);
+  const [outreachRecipients, setOutreachRecipients] = useState('');
+  const [outreachSubject, setOutreachSubject] = useState(OUTREACH_SUBJECT);
+  const [outreachBody, setOutreachBody] = useState(OUTREACH_BODY);
+  const [outreachSending, setOutreachSending] = useState(false);
+
+  const outreachValid = parseRecipients(outreachRecipients).filter(r => EMAIL_RE.test(r.email));
+
+  const sendOutreach = async () => {
+    const recipients = outreachValid;
+    if (recipients.length === 0) {
+      toast.error('Add at least one valid recipient');
+      return;
+    }
+    if (!outreachSubject.trim() || outreachBody.trim().length < 5) {
+      toast.error('Subject and message are required');
+      return;
+    }
+    setOutreachSending(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch('/api/admin-mail', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({
+          recipients: recipients.map(r => ({ email: r.email, name: r.name || null })),
+          subject: outreachSubject.trim(),
+          message: outreachBody.trim(),
+          kind: 'outreach',
+        }),
+      });
+      const json = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(json?.error || 'send failed');
+      toast.success(`Outreach sent to ${json.sent}/${json.total}${json.failed ? ` · ${json.failed} failed` : ''}`);
+      if (!json.failed) {
+        setOutreachOpen(false);
+        setOutreachRecipients('');
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not send outreach');
+    } finally {
+      setOutreachSending(false);
+    }
   };
 
   const sendMailToUser = async () => {
@@ -552,13 +632,22 @@ export default function AdminPage() {
               <h2 className="font-semibold text-sm text-foreground">Registered Users</h2>
               <span className="text-xs text-muted-foreground ml-1">({users.length})</span>
             </div>
-            <button
-              onClick={() => openCompose()}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-primary border border-primary/40 hover:bg-primary/15 transition-colors"
-            >
-              <Mail className="h-3.5 w-3.5" />
-              Compose to anyone
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setOutreachOpen(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-primary border border-primary/40 hover:bg-primary/15 transition-colors"
+              >
+                <Send className="h-3.5 w-3.5" />
+                Outreach
+              </button>
+              <button
+                onClick={() => openCompose()}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-primary border border-primary/40 hover:bg-primary/15 transition-colors"
+              >
+                <Mail className="h-3.5 w-3.5" />
+                Compose to anyone
+              </button>
+            </div>
           </div>
           {users.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4 text-center">No users yet.</p>
@@ -867,6 +956,65 @@ export default function AdminPage() {
             <Button onClick={sendMailToUser} disabled={mailSending || !mailToEmail.trim() || !mailSubject.trim() || !mailBody.trim()} className="w-full gap-2">
               {mailSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               Send email
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Outreach — invite potential users to try the app and blog */}
+      <Dialog open={outreachOpen} onOpenChange={setOutreachOpen}>
+        <DialogContent className="max-w-lg dark">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <Send className="h-4 w-4 text-primary" /> Outreach email
+            </DialogTitle>
+            <DialogDescription>
+              Invite people to try Wassup MLR and write up their experience. Sent from the branded team
+              template — the "Hey &lt;name&gt;!" greeting and "The Wassup MLR team" sign-off are added automatically.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Recipients <span className="text-muted-foreground font-normal">— one per line: <code>email</code>, <code>Name &lt;email&gt;</code>, or <code>Name, email</code></span>
+              </label>
+              <Textarea
+                value={outreachRecipients}
+                onChange={e => setOutreachRecipients(e.target.value)}
+                placeholder={"priya@example.com\nRahul Shenoy <rahul@example.com>\nAnita, anita@example.com"}
+                className="min-h-[110px] resize-none font-mono text-xs"
+                disabled={outreachSending}
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {outreachValid.length} valid recipient{outreachValid.length === 1 ? '' : 's'} · each person is greeted by their own name
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Subject</label>
+              <Input
+                value={outreachSubject}
+                onChange={e => setOutreachSubject(e.target.value)}
+                maxLength={200}
+                disabled={outreachSending}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Message</label>
+              <Textarea
+                value={outreachBody}
+                onChange={e => setOutreachBody(e.target.value)}
+                className="min-h-[200px] resize-none"
+                maxLength={5000}
+                disabled={outreachSending}
+              />
+            </div>
+            <Button
+              onClick={sendOutreach}
+              disabled={outreachSending || outreachValid.length === 0 || !outreachSubject.trim() || !outreachBody.trim()}
+              className="w-full gap-2"
+            >
+              {outreachSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Send to {outreachValid.length || 0} {outreachValid.length === 1 ? 'person' : 'people'}
             </Button>
           </div>
         </DialogContent>
