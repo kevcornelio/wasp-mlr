@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, MapPin, Calendar, User } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, User, Share2 } from 'lucide-react';
+import { toast } from 'sonner';
 import Comments from '@/components/Comments';
 import LevelTag from '@/components/LevelTag';
 import { useLevels } from '@/hooks/useLevels';
@@ -114,7 +115,33 @@ export default function BlogPostPage() {
               year: 'numeric',
             })}
           </span>
-          <LikeButton blogPostId={blog.id} className="ml-auto" />
+          <div className="ml-auto flex items-center gap-3">
+            <button
+              onClick={async () => {
+                const shareUrl = `${window.location.origin}/blog/${blog.id}`;
+                if (navigator.share) {
+                  try {
+                    await navigator.share({ title: blog.title, url: shareUrl });
+                  } catch {
+                    /* user cancelled the share sheet — ignore */
+                  }
+                  return;
+                }
+                try {
+                  await navigator.clipboard.writeText(shareUrl);
+                  toast.success('Link copied — share it anywhere!');
+                } catch {
+                  toast.error('Could not copy the link');
+                }
+              }}
+              className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
+              aria-label="Share this story"
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              Share
+            </button>
+            <LikeButton blogPostId={blog.id} />
+          </div>
         </div>
 
         {/* Body */}
