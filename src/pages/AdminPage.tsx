@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { MessageSquare, Users, Star, TrendingUp, Heart, ArrowLeft, RefreshCw, BookOpen, CheckCircle, XCircle, Clock, Trash2, MapPin, Mail, Loader2, Send, Newspaper } from 'lucide-react';
+import { MessageSquare, Users, Star, TrendingUp, Heart, ArrowLeft, RefreshCw, BookOpen, CheckCircle, XCircle, Clock, Trash2, MapPin, Mail, Loader2, Send, Newspaper, Image as ImageIcon, Copy } from 'lucide-react';
 import { isAdminEmail } from '@/lib/admin';
 import { getLevel, contributionScore } from '@/lib/levels';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -823,13 +823,44 @@ export default function AdminPage() {
                       by {blog.author_name} · {new Date(blog.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
                   </div>
-                  <button
-                    onClick={() => handleBlogDelete(blog.id)}
-                    disabled={deletingId === blog.id}
-                    className="shrink-0 p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  <div className="shrink-0 flex items-center gap-1">
+                    {blog.status === 'approved' && (
+                      <>
+                        <a
+                          href={`/api/og?id=${blog.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="View share card image"
+                          className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                        >
+                          <ImageIcon className="h-3.5 w-3.5" />
+                        </a>
+                        <button
+                          onClick={async () => {
+                            const shareUrl = `${window.location.origin}/blog/${blog.id}`;
+                            try {
+                              await navigator.clipboard.writeText(shareUrl);
+                              toast.success('Share link copied');
+                            } catch {
+                              toast.error('Could not copy the link');
+                            }
+                          }}
+                          title="Copy share link"
+                          className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => handleBlogDelete(blog.id)}
+                      disabled={deletingId === blog.id}
+                      title="Delete post"
+                      className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
